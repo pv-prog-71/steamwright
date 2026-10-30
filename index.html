@@ -53,6 +53,9 @@
   canvas#board { position: absolute; left: 13px; top: 13px; display: block; width: calc(100% - 26px); height: calc(100% - 26px); border-radius: 3px; touch-action: none; cursor: crosshair; box-shadow: 0 0 0 2px #120c08, 0 0 0 3px #8a6a3a66, inset 0 0 30px #000; }
   .tools { position: absolute; right: 22px; bottom: 22px; z-index: 4; display: flex; gap: 6px; }
   .tools button { padding: 4px 10px; font-size: 14px; background: #000a; }
+  .seg { display: inline-flex; border: 1px solid #6a4f36; border-radius: 8px; overflow: hidden; background: #000a; }
+  .seg button { border: 0; border-radius: 0; background: none; padding: 5px 12px; font-size: 14px; color: var(--ink-dim); }
+  .seg button.on { background: linear-gradient(#e0ad52, #b87a28); color: #20150a; font-weight: 700; }
   .tools button.on { border-color: var(--brass); color: var(--brass); }
   .hint { position: absolute; left: 24px; bottom: 20px; right: 280px; z-index: 4; font-size: 12px; color: var(--ink-dim); pointer-events: none; text-shadow: 0 1px 2px #000; }
   .toast { position: absolute; z-index: 5; left: 50%; top: 24px; transform: translateX(-50%); background: #000c; border: 1px solid var(--line); padding: 6px 14px; border-radius: 20px; font-size: 14px; opacity: 0; transition: opacity .25s; pointer-events: none; white-space: nowrap; }
@@ -96,6 +99,8 @@
   .statbox { position: absolute; left: 24px; top: 24px; z-index: 4; font-size: 13px; line-height: 1.45; color: var(--ink-dim); background: #0009; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; pointer-events: none; }
   .statbox b { color: var(--steam); }
   .tile { display: flex; flex-direction: column; background: linear-gradient(rgba(30,22,16,.35), rgba(18,12,8,.55)), var(--plate) 40px 70px / 256px 256px, #261c15; border: 1px solid #6a4f36; border-radius: 5px; overflow: hidden; box-shadow: inset 0 1px 0 rgba(255,225,170,.12), 0 1px 3px #000a; }
+  .tile.locked { filter: grayscale(.85) brightness(.75); opacity: .6; }
+  .tile.locked .cost::before { display: none; }
   .tile.sel { border-color: var(--brass); box-shadow: 0 0 0 1px var(--brass) inset; background: #3a2c1e; }
   .tile .pick { border: 0; background: none; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 4px 4px; font-size: 13px; line-height: 1.2; border-radius: 0; }
   .tile .uprow { display: flex; justify-content: space-between; align-items: center; gap: 4px; padding: 4px 6px 6px; border-top: 1px solid var(--line); font-size: 12px; color: var(--ink-dim); }
@@ -122,6 +127,17 @@
   .chip.no { color: #9a8a70; border-color: rgba(255,230,190,.25); }
   header .avatar { width: 40px; height: 40px; border-radius: 50%; border: 2px solid #b98a45; box-shadow: 0 0 0 2px #1a110b, 0 2px 8px #000a; object-fit: cover; cursor: pointer; flex: none; }
   header { align-items: center; }
+  #unlock { position: fixed; inset: 0; z-index: 55; display: flex; align-items: center; justify-content: center; background: rgba(8,5,3,.78); transition: opacity .3s; padding: 16px; }
+  #unlock.gone { opacity: 0; pointer-events: none; }
+  #unlock .ubox { text-align: center; max-width: 360px; padding: 20px 26px 22px; border: 2px solid #f0c577; border-radius: 10px; background: linear-gradient(rgba(18,12,8,.55), rgba(18,12,8,.8)), var(--plate) 0 0 / 256px 256px, #241a13; box-shadow: 0 0 40px rgba(240,197,119,.35), 0 10px 40px #000; animation: upop .45s cubic-bezier(.2,1.4,.4,1); }
+  @keyframes upop { from { transform: scale(.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  #unlock .ukick { font-family: 'Cinzel', Georgia, serif; color: #f0cd7a; letter-spacing: .12em; text-transform: uppercase; font-size: 14px; }
+  #unlock canvas { width: 150px; height: 150px; margin: 8px auto 0; display: block; background: radial-gradient(circle, #5a4128, #140d09 72%); border-radius: 50%; border: 2px solid #8a6a3a; }
+  #unlock h2 { font-family: 'Cinzel', Georgia, serif; font-size: 28px; margin: 10px 0 4px; color: #f6e2b0; }
+  #unlock p { margin: 0 0 14px; color: var(--ink-dim); font-size: 15px; line-height: 1.35; }
+  .tile.fresh { box-shadow: 0 0 0 2px #f0c577, 0 0 14px rgba(240,197,119,.6); animation: fresh 1.2s ease-in-out infinite alternate; }
+  .tile.fresh .pick b::after { content: 'NEW'; margin-left: 6px; font: 700 10px 'Alegreya Sans', sans-serif; color: #20150a; background: #f0c577; border-radius: 4px; padding: 1px 4px; vertical-align: 2px; letter-spacing: .06em; }
+  @keyframes fresh { to { box-shadow: 0 0 0 2px #f0c577, 0 0 4px rgba(240,197,119,.2); } }
   #splash { position: fixed; inset: 0; z-index: 60; display: flex; align-items: flex-end; justify-content: center; background: #0d0907 center / cover no-repeat; transition: opacity .5s; }
   #splash.gone { opacity: 0; pointer-events: none; }
   #splash::before { content: ""; position: absolute; inset: 0; background: linear-gradient(to top, rgba(8,5,3,.92) 0%, rgba(8,5,3,.55) 34%, rgba(8,5,3,0) 62%); }
@@ -132,6 +148,7 @@
   @media (max-height: 460px) { #splash h2 { font-size: 26px; } #splash p { margin: 2px 0 8px; } #splash button { padding: 6px 20px; font-size: 15px; } }
 </style>
 
+<div id="unlock" class="gone" role="dialog" aria-label="New part unlocked"><div class="ubox"><div class="ukick">New part unlocked!</div><canvas id="ucv" width="300" height="300"></canvas><h2 id="uname"></h2><p id="udesc"></p><button class="primary" id="uok" style="width:auto">Great!</button></div></div>
 <div id="splash" class="gone" role="dialog" aria-label="Welcome">
   <div class="box"><h2>Steamwright</h2><p>The old inventor builds robots in his cluttered workshop. Build yours, win battles, climb the leagues.</p><button id="enter">Enter the workshop</button></div>
 </div>
@@ -156,7 +173,7 @@
     </div>
     <div class="toast" id="toast"></div>
     <div class="arenabar" id="arenabar">
-      <button id="speedBtn" title="Toggle battle speed"></button>
+      <span class="seg" id="speedSeg" title="Battle speed"><button data-s="1">Slow</button><button data-s="4">Fast</button></span>
     </div>
     <div class="banner" id="banner"><h3 id="bannerTitle"></h3><div id="bannerText"></div><button class="primary" id="again" style="width:auto">Continue</button></div>
   </div>
@@ -197,7 +214,8 @@
   const BUILDABLE = ['cannon', 'spring', 'boiler', 'gear', 'plate', 'shield', 'repair', 'wheel', 'mortar', 'tesla'];
   const isGun = t => t === 'cannon' || t === 'mortar' || t === 'tesla';
   const UPGRADABLE = ['cannon', 'mortar', 'tesla', 'spring', 'boiler', 'gear', 'plate', 'shield', 'repair', 'wheel', 'core'];
-  const UNLOCK_LEAGUE = { cannon: 1, plate: 1, spring: 2, shield: 3, boiler: 4, gear: 5, repair: 3, wheel: 4, mortar: 6, tesla: 7, core: 1 };
+  const UNLOCK_LEAGUE = { cannon: 1, plate: 1, spring: 2, shield: 3, boiler: 4, gear: 5, repair: 6, wheel: 7, mortar: 8, tesla: 9, core: 1 };
+  const isLocked = t => t !== 'core' && S.league < (UNLOCK_LEAGUE[t] || 1);
   const NAMES = ['Brass', 'Steamlet', 'Rusty', 'Piston', 'Clank', 'Copper', 'Bolt', 'Smokestack', 'Puff', 'Rivet', 'Crank', 'Ember', 'Spark', 'Latch'];
   const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
   const SAVE_KEY = 'automa-vapore-v1';
@@ -947,8 +965,11 @@
     if (u.has(key(x, y))) return false;
     return DIRS.some(d => u.has(key(x + d[0], y + d[1])));
   }
+  let inspect = null, pendingUnlock = null;
+  const INFL = { spring: isGun, boiler: isGun, gear: () => true, shield: () => true, wheel: () => true, repair: () => true };
+  const INFL_COL = { spring: '255,205,90', boiler: '255,120,50', gear: '215,175,105', shield: '110,190,255', wheel: '210,210,215', repair: '110,240,170' };
   function clickCell(x, y) {
-    const k = key(x, y), u = unlockedSet();
+    const k = key(x, y), u = unlockedSet(); const prevInspect = inspect; inspect = null;
     if (!u.has(k)) {
       if (!canExpand(x, y)) return;
       if (S.unlocked.length >= maxCells()) return toast('Space limit for this league: win to reach the next league');
@@ -957,7 +978,8 @@
       S.coins -= c; S.unlocked.push(k); toast('Space expanded'); changed(); return;
     }
     if (tool === 'erase') return erase(k);
-    if (S.parts[k]) return toast('Slot taken (use Erase to remove it)');
+    if (!S.parts[k] && isLocked(tool)) return toast(TYPES[tool].name + ' unlocks in league ' + UNLOCK_LEAGUE[tool]);
+    if (S.parts[k]) { inspect = prevInspect === k ? null : k; refreshUI(); return; }
     const cost = placeCost(tool);
     if (S.coins < cost) return toast('You need ' + cost + ' coins');
     S.coins -= cost; S.parts[k] = tool; changed();
@@ -1016,7 +1038,7 @@
   const tiles = {};
   function buildPalette() {
     const box = $('parts'); box.innerHTML = '';
-    UPGRADABLE.slice().sort((x, y) => (x === 'core') - (y === 'core')).forEach(t => {
+    UPGRADABLE.slice().sort((x, y) => ((x === 'core') - (y === 'core')) || (UNLOCK_LEAGUE[x] - UNLOCK_LEAGUE[y])).forEach(t => {
       const el = document.createElement('div'); el.className = 'tile'; el.dataset.type = t;
       const pick = document.createElement('button'); pick.className = 'pick';
       const cv = document.createElement('canvas'); cv.width = 88; cv.height = 88;
@@ -1025,12 +1047,12 @@
       const c = document.createElement('div'); c.className = 'cost'; c.textContent = t === 'core' ? 'fixed' : TYPES[t].cost;
       const lv = document.createElement('span'); lv.className = 'lvl';
       pick.append(cv, nm, c); pick.title = TYPES[t].desc;
-      if (t === 'core') pick.disabled = true; else pick.addEventListener('click', () => { tool = t; lastTool = t; refreshUI(); });
+      if (t === 'core') pick.disabled = true; else pick.addEventListener('click', () => { tool = t; lastTool = t; if (S.newParts) S.newParts = S.newParts.filter(x => x !== t); refreshUI(); });
       const row = document.createElement('div'); row.className = 'uprow';
       const up = document.createElement('button'); up.className = 'up';
       up.addEventListener('click', () => { const cc = upgradeCost(t); if (S.coins >= cc) { S.coins -= cc; S.lv[t] = (S.lv[t] || 0) + 1; changed(); } });
       row.append(lv, up); el.append(pick, row); box.appendChild(el);
-      tiles[t] = { el, lv, up, c, cv, tier: -1 };
+      tiles[t] = { el, lv, up, c, cv, pickBtn: pick, tier: -1 };
     });
   }
   function refreshUI() {
@@ -1038,9 +1060,9 @@
     $('league').textContent = S.league;
     $('streak').textContent = S.streak + '/' + needWins(S.league);
     Object.keys(tiles).forEach(t => { const T_ = tiles[t], c = upgradeCost(t);
-      { const L_ = S.lv[t] || 0; if (T_.tier !== L_) { T_.tier = L_; const g2 = T_.cv.getContext('2d'); g2.clearRect(0, 0, 88, 88); curLvl = S.lv; drawPart(g2, t, 44, 44, 76, 0.5, 1); curLvl = null; } } T_.el.classList.toggle('sel', t === tool); T_.lv.textContent = 'Lv ' + (S.lv[t] || 0); T_.lv.classList.toggle('on', (S.lv[t] || 0) > 0); if (t !== 'core') T_.c.textContent = placeCost(t); T_.up.classList.toggle('can', S.coins >= c); T_.up.textContent = '▲ ' + c; T_.up.title = 'Upgrade: +20% to this part'; T_.up.disabled = S.coins < c; });
+      { const L_ = S.lv[t] || 0; if (T_.tier !== L_) { T_.tier = L_; const g2 = T_.cv.getContext('2d'); g2.clearRect(0, 0, 88, 88); curLvl = S.lv; drawPart(g2, t, 44, 44, 76, 0.5, 1); curLvl = null; } } T_.el.classList.toggle('sel', t === tool); T_.lv.textContent = 'Lv ' + (S.lv[t] || 0); T_.lv.classList.toggle('on', (S.lv[t] || 0) > 0); const lk = isLocked(t); T_.el.classList.toggle('locked', lk); T_.el.classList.toggle('fresh', !lk && (S.newParts || []).includes(t)); T_.pickBtn.disabled = t === 'core' || lk; if (t !== 'core') T_.c.textContent = lk ? 'League ' + UNLOCK_LEAGUE[t] : placeCost(t); T_.up.classList.toggle('can', S.coins >= c); T_.up.textContent = '▲ ' + c; T_.up.title = 'Upgrade: +20% to this part'; T_.up.disabled = S.coins < c || lk; });
     { const ec = expandCost(), full = S.unlocked.length >= maxCells(), chip = $('expandPrice'); chip.textContent = full ? '+ slot: league limit' : '+ slot ' + ec; chip.classList.toggle('no', full || S.coins < ec); }
-    $('hint').textContent = tool === 'erase' ? 'Erase mode: tap a part to remove it (base price refunded). Tap Erase again to go back.' : TYPES[tool].name + ': ' + TYPES[tool].desc;
+    $('hint').textContent = inspect && S.parts[inspect] && tool !== 'erase' ? TYPES[S.parts[inspect]].name + ': ' + TYPES[S.parts[inspect]].desc + (INFL[S.parts[inspect]] ? '' : ' (no bonus to neighbours)') : tool === 'erase' ? 'Erase mode: tap a part to remove it (base price refunded). Tap Erase again to go back.' : TYPES[tool].name + ': ' + TYPES[tool].desc;
     $('eraseBtn').classList.toggle('on', tool === 'erase');
     $('tools').style.display = mode === 'build' ? '' : 'none';
     // robot stats
@@ -1087,7 +1109,7 @@
     const reward = win ? 20 + 8 * L : 6 + 2 * L;
     S.coins += reward; S.fights++;
     let extra = '';
-    if (win) { S.streak++; if (S.streak >= needWins(L)) { S.streak = 0; S.league++; extra = ' League ' + S.league + ' reached!'; } }
+    if (win) { S.streak++; if (S.streak >= needWins(L)) { S.streak = 0; S.league++; extra = ' League ' + S.league + ' reached!'; const nu = BUILDABLE.filter(t => UNLOCK_LEAGUE[t] === S.league).map(t => TYPES[t].name); if (nu.length) { extra += ' New part: ' + nu.join(', ') + '.'; pendingUnlock = BUILDABLE.filter(t => UNLOCK_LEAGUE[t] === S.league); S.newParts = (S.newParts || []).concat(pendingUnlock); } } }
     $('bannerTitle').textContent = win ? 'Victory!' : 'Defeat';
     $('bannerText').textContent = '+' + reward + ' coins.' + extra;
     $('banner').classList.add('on', win ? 'win' : 'lose'); $('banner').classList.remove(win ? 'lose' : 'win');
@@ -1238,6 +1260,28 @@
       }
     });
     drawLinks(g, Object.keys(S.parts).map(k => { const [x, y] = k.split(',').map(Number), q = toScreen(x, y); return { x: q[0], y: q[1], cx: x, cy: y }; }), u);
+    if (inspect && S.parts[inspect] && mode === 'build') {
+      const it = S.parts[inspect], [ix, iy] = inspect.split(',').map(Number), [isx, isy] = toScreen(ix, iy), col = INFL_COL[it];
+      g.save(); g.strokeStyle = '#f0c577'; g.lineWidth = 2.5; g.beginPath(); g.arc(isx, isy, u * 0.46, 0, 7); g.stroke(); g.restore();
+      if (INFL[it]) DIRS.forEach(d => {
+        const nk = key(ix + d[0], iy + d[1]), nt = S.parts[nk]; if (!nt || !INFL[it](nt)) return;
+        const [nx, ny] = toScreen(ix + d[0], iy + d[1]), pl = 0.5 + 0.5 * Math.sin(T * 4);
+        g.save(); g.globalCompositeOperation = 'lighter';
+        const gl = g.createRadialGradient(nx, ny, u * 0.1, nx, ny, u * 0.62); gl.addColorStop(0, 'rgba(' + col + ',' + (0.28 + 0.14 * pl) + ')'); gl.addColorStop(1, 'rgba(' + col + ',0)');
+        g.fillStyle = gl; g.beginPath(); g.arc(nx, ny, u * 0.62, 0, 7); g.fill(); g.restore();
+        g.save(); g.strokeStyle = 'rgba(' + col + ',' + (0.75 + 0.25 * pl) + ')'; g.lineWidth = 2.5; g.setLineDash([6, 4]); g.beginPath(); g.arc(nx, ny, u * 0.45, 0, 7); g.stroke(); g.restore();
+        { // light electric arc from the selected part to the influenced one (re-rolled ~8 times a second)
+          const ax = isx + d[0] * u * 0.3, ay = isy + d[1] * u * 0.3, bx = nx - d[0] * u * 0.3, by = ny - d[1] * u * 0.3, fr = Math.floor(T * 8), N = 7;
+          g.save(); g.lineJoin = 'round'; g.lineCap = 'round';
+          for (let pass = 0; pass < 2; pass++) {
+            g.strokeStyle = pass ? 'rgba(255,255,255,.85)' : 'rgba(' + col + ',.55)'; g.lineWidth = pass ? 1.3 : 3.6; g.beginPath(); g.moveTo(ax, ay);
+            for (let i = 1; i < N; i++) { const f = i / N, j = (hs(fr * 7 + i * 13 + ix * 3, iy * 5 + d[0] * 17 + d[1] * 29) - 0.5) * u * 0.22; g.lineTo(ax + (bx - ax) * f + (d[1] !== 0 ? j : 0), ay + (by - ay) * f + (d[0] !== 0 ? j : 0)); }
+            g.lineTo(bx, by); g.stroke();
+          }
+          g.restore();
+        }
+      });
+    }
     if (hold) {
       const [x, y] = hold.k.split(',').map(Number), q = toScreen(x, y), pr = Math.min(1, (performance.now() - hold.t0) / 550);
       g.strokeStyle = '#e2674f'; g.lineWidth = 4; g.beginPath(); g.arc(q[0], q[1], u * 0.36, -1.57, -1.57 + pr * 6.283); g.stroke();
@@ -1291,15 +1335,23 @@
 
   // ------------------------------------------------------------ wiring
   $('fight').addEventListener('click', startBattle);
-  $('again').addEventListener('click', endBattleView);
+  function showUnlock() {
+    if (!pendingUnlock || !pendingUnlock.length) return;
+    const t = pendingUnlock.shift(), cv = $('ucv'), g2 = cv.getContext('2d');
+    g2.clearRect(0, 0, 300, 300); curLvl = null; drawPart(g2, t, 150, 150, 220, 0.5, 1);
+    $('uname').textContent = TYPES[t].name; $('udesc').textContent = TYPES[t].desc;
+    $('unlock').classList.remove('gone');
+  }
+  $('uok').addEventListener('click', () => { $('unlock').classList.add('gone'); setTimeout(showUnlock, 350); });
+  $('again').addEventListener('click', () => { endBattleView(); showUnlock(); });
   let lastTool = 'cannon';
   const zoomBy = f => { view.z = clamp(view.z * f, 0.3, 2.4); view.x *= f; view.y *= f; userMoved = true; };
   $('zin').addEventListener('click', () => zoomBy(1.2));
   $('zout').addEventListener('click', () => zoomBy(1 / 1.2));
   $('eraseBtn').addEventListener('click', () => { tool = tool === 'erase' ? lastTool : 'erase'; refreshUI(); });
   $('center').addEventListener('click', () => { userMoved = false; fitView(); });
-    const showSpeed = () => { $('speedBtn').textContent = speed > 1 ? 'Fast ▸▸' : 'Normal ▸'; $('speedBtn').classList.toggle('on', speed > 1); };
-    $('speedBtn').addEventListener('click', () => { speed = speed > 1 ? 1 : 4; showSpeed(); }); showSpeed();
+    const showSpeed = () => { document.querySelectorAll('#speedSeg button').forEach(b => b.classList.toggle('on', +b.dataset.s === speed)); };
+    document.querySelectorAll('#speedSeg button').forEach(b => b.addEventListener('click', () => { speed = +b.dataset.s; showSpeed(); })); showSpeed();
   $('reset').addEventListener('click', () => {
     if (!$('reset').dataset.sure) { $('reset').dataset.sure = 1; $('reset').textContent = 'Sure? Tap again'; setTimeout(() => { delete $('reset').dataset.sure; $('reset').textContent = 'Restart'; }, 3000); return; }
     delete $('reset').dataset.sure; $('reset').textContent = 'Restart';
@@ -1319,6 +1371,7 @@
   }
 
   load();
+  { const m = /^#league(\d+)$/.exec(location.hash); if (m) { S.league = Math.max(1, Math.min(30, +m[1])); S.streak = 0; S.coins = Math.max(S.coins, 3000); S.newParts = BUILDABLE.filter(t => UNLOCK_LEAGUE[t] > 1 && UNLOCK_LEAGUE[t] <= S.league); save(); } }
   fit();
   buildPalette();
   fitView();
@@ -1327,7 +1380,7 @@
   offline();
   refreshUI();
   save();
-  window.__automa = { S: () => S, compute, simulate, genEnemy, winChance, playerCells, startBattle, view, state: () => ({ mode, tool, chance }), setTool: t => { tool = t; }, clickCell };
+  window.__automa = { unlockDemo: t => { pendingUnlock = [t]; showUnlock(); }, S: () => S, compute, simulate, genEnemy, winChance, playerCells, startBattle, view, state: () => ({ mode, tool, chance }), setTool: t => { tool = t; }, clickCell };
   requestAnimationFrame(frame);
 })();
 
