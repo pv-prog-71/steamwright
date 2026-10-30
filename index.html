@@ -465,7 +465,7 @@
       const w = arr.map(q => {
         if (!q.alive) return 0;
         const empty = 4 - q.p.nb.filter(j => arr[j].alive).length;
-        const v = 0.4 + empty;
+        const v = q.p.type === 'wheel' ? 0.25 : 0.4 + empty;   // wheels hang low and rarely draw fire (they used to be the most exposed target)
         total += v;
         return v;
       });
