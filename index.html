@@ -327,17 +327,17 @@
     spring: { name: 'Spring',     hp: 10, cost: 25, desc: 'Adjacent weapons fire 20% faster.' },
     boiler: { name: 'Boiler',   hp: 10, cost: 40, desc: 'Adjacent weapons deal +30% damage. If it explodes, it hurts its neighbours.' },
     gear:   { name: 'Gear', hp: 12, cost: 35, desc: 'Adjacent parts have +25% health.' },
-    plate:  { name: 'Plate',   hp: 30, cost: 15, desc: 'Base plate under every part (not buildable).' },
+    plate:  { name: 'Armour plate', hp: 40, cost: 20, desc: 'Cheap armour with lots of health. It gets tougher with each level: scrap, steel, gold, platinum.' },
     shield: { name: 'Shield',     hp: 12, cost: 30, desc: 'Adjacent parts take 30% less damage.' },
     mortar: { name: 'Mortar', hp: 12, dmg: 16, per: 4.5, cost: 55, desc: 'Slow lobbed shell: 16 damage to a part and half of it to the parts next to it.' },
     tesla:  { name: 'Tesla', hp: 12, dmg: 4, per: 1.3, cost: 50, desc: 'Fast lightning that ignores decoys: it hits any enemy part with the same chance.' },
     repair: { name: 'Repairer', hp: 10, heal: 2, cost: 45, desc: 'Every second it heals each adjacent part by 2 health.' },
     wheel:  { name: 'Wheels', hp: 14, cost: 40, desc: 'Adjacent parts dodge 12% of the shots aimed at them.' }
   };
-  const BUILDABLE = ['cannon', 'spring', 'boiler', 'gear', 'shield', 'repair', 'wheel', 'mortar', 'tesla'];
+  const BUILDABLE = ['cannon', 'plate', 'spring', 'boiler', 'gear', 'shield', 'repair', 'wheel', 'mortar', 'tesla'];
   const isGun = t => t === 'cannon' || t === 'mortar' || t === 'tesla';
-  const UPGRADABLE = ['cannon', 'mortar', 'tesla', 'spring', 'boiler', 'gear', 'shield', 'repair', 'wheel', 'core'];
-  const UNLOCK_LEAGUE = { cannon: 1, plate: 1, spring: 2, shield: 3, boiler: 4, gear: 5, repair: 6, wheel: 7, mortar: 8, tesla: 9, core: 1 };
+  const UPGRADABLE = ['cannon', 'plate', 'mortar', 'tesla', 'spring', 'boiler', 'gear', 'shield', 'repair', 'wheel', 'core'];
+  const UNLOCK_LEAGUE = { cannon: 1, plate: 1, spring: 2, shield: 3, boiler: 4, gear: 5, repair: 6, wheel: 3, mortar: 8, tesla: 9, core: 1 };
   const isLocked = t => t !== 'core' && S.league < (UNLOCK_LEAGUE[t] || 1);
   const NAMES = ['Brass', 'Steamlet', 'Rusty', 'Piston', 'Clank', 'Copper', 'Bolt', 'Smokestack', 'Puff', 'Rivet', 'Crank', 'Ember', 'Spark', 'Latch'];
   const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
@@ -395,11 +395,10 @@
 
   // ------------------------------------------------------------ game state
   function freshState() {
-    const unlocked = [];
-    for (let x = -1; x <= 1; x++) for (let y = -1; y <= 1; y++) unlocked.push(key(x, y));
+    const unlocked = [key(0, 0), key(0, 1)];   // the core and, under it, the first wheel: the bottom row (y = 1) is reserved for wheels
     return {
-      coins: 100, league: 1, streak: 0, hull: 0,
-      unlocked, parts: { '0,0': 'core' },
+      coins: 100, league: 1, streak: 0, hull: 0, wrow: 1,
+      unlocked, parts: { '0,0': 'core', '0,1': 'wheel' },
       lv: {}, auto: false, last: Date.now(), seed: 1, fights: 0, base: 1 + Math.floor(Math.random() * 9000)
     };
   }
@@ -407,7 +406,9 @@
   function load() {
     try {
       const raw = localStorage.getItem(SAVE_KEY);
-      if (raw) { const o = JSON.parse(raw); if (o && o.parts && o.unlocked) { S = Object.assign(freshState(), o); Object.keys(S.parts).forEach(k => { if (S.parts[k] === 'plate') { S.coins += 15; delete S.parts[k]; } }); delete S.plates; } }
+      if (raw) { const o = JSON.parse(raw); if (o && o.parts && o.unlocked) { S = Object.assign(freshState(), o); delete S.plates;
+        if (!S.wrow) { S.wrow = 1; Object.keys(S.parts).forEach(k => { const y = +k.split(',')[1]; if (S.parts[k] !== 'core' && (y >= 1 || S.parts[k] === 'wheel')) { S.coins += 15; delete S.parts[k]; } });
+          S.unlocked = S.unlocked.filter(k => +k.split(',')[1] <= 0); if (S.unlocked.indexOf('0,1') < 0) S.unlocked.push('0,1'); S.parts['0,1'] = 'wheel'; } } }
     } catch (e) {}
   }
   function save() {
@@ -538,13 +539,13 @@
 
   function genEnemy(league, seed) {
     const rng = rngOf(seed * 7919 + league * 104729);
-    const allowed = BUILDABLE.filter(t => UNLOCK_LEAGUE[t] <= league);
+    const allowed = BUILDABLE.filter(t => UNLOCK_LEAGUE[t] <= league && t !== 'wheel');
     const n = 3 + Math.floor(league * 2.7);
     const cells = [{ x: 0, y: 0, type: 'core' }];
     const used = new Set(['0,0']);
     const frontier = () => {
       const out = [];
-      cells.forEach(c => DIRS.forEach(d => { const k = key(c.x + d[0], c.y + d[1]); if (!used.has(k)) out.push([c.x + d[0], c.y + d[1]]); }));
+      cells.forEach(c => DIRS.forEach(d => { const k = key(c.x + d[0], c.y + d[1]); if (!used.has(k) && c.y + d[1] <= 0) out.push([c.x + d[0], c.y + d[1]]); }));
       return out;
     };
     const cannons = Math.max(1, Math.ceil(n * 0.35));
@@ -564,6 +565,8 @@
       cells.push({ x: cell[0], y: cell[1], type });
       used.add(key(cell[0], cell[1]));
     }
+    cells.push({ x: 0, y: 1, type: 'wheel' });   // wheels on the bottom row
+    { const bottoms = cells.filter(c => c.y === 0 && c.x !== 0 && c.type !== 'core'); for (let i = 0; i < Math.min(bottoms.length, league >= UNLOCK_LEAGUE.wheel ? Math.floor(n / 7) : 0); i++) cells.push({ x: bottoms[i].x, y: 1, type: 'wheel' }); }
     const l = Math.floor((league - 1) * 0.6);
     const lv = {};
     UPGRADABLE.forEach(t => (lv[t] = l));
@@ -704,7 +707,7 @@
   function drawPart(g, type, cx, cy, u, t, dir, hpRatio) {
     const tl = (curLvl && curLvl[type]) || 0;
     const tt = tl >= 5 ? 3 : tl >= 3 ? 2 : tl >= 1 ? 1 : 0, TR = TIER[tt];
-    drawPlate(g, cx, cy, u, tt, type); const pseed = PSEED; PSEED = 0;
+    if (type === 'plate') drawPlate(g, cx, cy, u, tt, type); const pseed = PSEED; PSEED = 0;
     g.save();
     g.translate(cx, cy);
     g.scale(dir * u / CELL, u / CELL);
@@ -724,7 +727,18 @@
     const M = TR.metal;
     const sp = SPR[type] && SPR[type][tt], spOk = sp && sp.complete && sp.naturalWidth > 0;
     const metalGrad = (y0, y1) => { const q = g.createLinearGradient(0, y0, 0, y1); q.addColorStop(0, M[0]); q.addColorStop(0.5, M[1]); q.addColorStop(1, M[2]); return q; };
-    if (spOk) {
+    if (type === 'wheel') {   // a real wheel seen from the side: it replaces the default cart wheels
+      const wr = 25 + tt, spin = WROT + pseed; g.translate(0, 13);   // hung lower so the two struts show above it
+      g.fillStyle = 'rgba(0,0,0,.55)'; g.beginPath(); g.ellipse(2, wr + 0.5, wr * 1.1, 5, 0, 0, 7); g.fill();
+      g.fillStyle = '#17120e'; g.beginPath(); g.arc(0, 0, wr, 0, 7); g.fill();
+      g.strokeStyle = 'rgba(255,255,255,.08)'; g.lineWidth = 2; g.beginPath(); g.arc(0, 0, wr - 2, 3.4, 5.2); g.stroke();
+      const rg = g.createRadialGradient(-6, -6, 3, 0, 0, wr * 0.78); rg.addColorStop(0, M[0]); rg.addColorStop(0.6, M[1]); rg.addColorStop(1, M[2]);
+      g.fillStyle = rg; g.beginPath(); g.arc(0, 0, wr * 0.78, 0, 7); g.fill(); g.strokeStyle = '#0e0905'; g.lineWidth = 2; g.stroke();
+      g.save(); g.rotate(spin); g.strokeStyle = '#0e0905'; g.lineWidth = 4.2; for (let i = 0; i < 8; i++) { g.rotate(0.7854); g.beginPath(); g.moveTo(0, 0); g.lineTo(wr * 0.7, 0); g.stroke(); }
+      g.strokeStyle = M[0]; g.lineWidth = 2.4; for (let i = 0; i < 8; i++) { g.rotate(0.7854); g.beginPath(); g.moveTo(0, 0); g.lineTo(wr * 0.7, 0); g.stroke(); }
+      g.restore();
+      g.fillStyle = '#0e0905'; g.beginPath(); g.arc(0, 0, 7.5, 0, 7); g.fill(); g.fillStyle = M[0]; g.beginPath(); g.arc(0, 0, 5.2, 0, 7); g.fill(); rivet(g, 0, 0, 1.8);
+    } else if (spOk) {
       { const hl = g.createRadialGradient(0, 2, 6, 0, 2, 40); hl.addColorStop(0, 'rgba(6,3,1,.55)'); hl.addColorStop(0.6, 'rgba(6,3,1,.3)'); hl.addColorStop(1, 'rgba(6,3,1,0)'); g.fillStyle = hl; g.beginPath(); g.arc(0, 2, 40, 0, 7); g.fill(); }
       const S2 = 70;
       g.save();
@@ -832,7 +846,7 @@
       for (let i = 0; i < 6; i++) { const a0 = i * 1.0472; g.fillStyle = '#3a2810'; g.beginPath(); g.arc(Math.cos(a0) * 5.2, Math.sin(a0) * 5.2, 0.9, 0, 7); g.fill(); }
       g.fillStyle = tt >= 3 ? '#7ad7ff' : '#2a1c0c'; g.beginPath(); g.arc(0, 0, 2.6, 0, 7); g.fill();
       g.restore();
-    } else if (type === 'plate') {
+    } else if (type === 'plate' && 0) {
       const grd = g.createLinearGradient(-24, -24, 24, 24);
       grd.addColorStop(0, tt >= 2 ? '#a9b0b9' : '#8c8f96'); grd.addColorStop(1, '#4a4d55');
       if (tt >= 3) { g.fillStyle = '#d8dde2'; [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sy]) => { g.beginPath(); g.moveTo(sx * 22, sy * 30); g.lineTo(sx * 30, sy * 22); g.lineTo(sx * 34, sy * 34); g.closePath(); g.fill(); }); }
@@ -854,7 +868,7 @@
       else { g.fillStyle = '#7c5724'; g.beginPath(); g.arc(0, 0, 5, 0, 7); g.fill(); }
       if (tt >= 3) { g.fillStyle = 'rgba(160,230,255,' + (0.18 + 0.1 * Math.sin(t * 3)) + ')'; g.beginPath(); g.arc(0, 0, 26, 0, 7); g.fill(); }
     }
-    if (!spOk) drawDetail(g, type, tt, t);
+    if (!spOk && type !== 'plate' && type !== 'wheel') drawDetail(g, type, tt, t);
     g.restore();
     if (hpRatio !== undefined && hpRatio < 1 && hpRatio > 0) {
       const w = u * 0.7;
@@ -1013,8 +1027,8 @@
     }
     g.restore();
   }
-  function tracksFor(g, pts, u, dir, ph, mv) {
-    if (!pts.length) return;
+  function tracksFor(g, pts, u, dir, ph, mv, hide) {
+    return;
     let yb = -1e9; pts.forEach(p => { if (p.y > yb) yb = p.y; });
     let x0 = 1e9, x1 = -1e9; pts.forEach(p => { if (Math.abs(p.y - yb) < 1) { x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x); } });
     drawTracks(g, x0, x1, yb + u * 0.3, u, dir, ph, mv);
@@ -1028,7 +1042,8 @@
   PLATE_IM[3].src = 'data:image/webp;base64,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';
   PLATE_IM[0].onload = () => { try { buildPalette(); refreshUI(); } catch (e) {} };
   const PLATE_HOLES = [[[0.093,0.111,0.032],[0.88,0.111,0.032],[0.888,0.868,0.032],[0.113,0.871,0.032]],[[0.077,0.084,0.025],[0.918,0.084,0.025],[0.078,0.913,0.026],[0.918,0.913,0.025]],[[0.111,0.109,0.028],[0.885,0.108,0.028],[0.11,0.889,0.027],[0.885,0.888,0.027]],[[0.097,0.105,0.03],[0.898,0.105,0.03],[0.097,0.895,0.03],[0.898,0.895,0.03]]];   // bolt-hole centres/radii of each plate art (fractions of its side)
-  let PSEED = 0;   // per-cell seed so each plate gets its own scrap decoration
+  let PSEED = 0, WROT = 0;   // WROT: wheel angle, set only while a robot is rolling (wheels never turn when it stands still)
+   // per-cell seed so each plate gets its own scrap decoration
   function drawPlate(g, cx, cy, u, tier, type) {
     const tex = PLATE_IM[tier] && PLATE_IM[tier].complete && PLATE_IM[tier].naturalWidth ? PLATE_IM[tier] : null;   // fallback: the code-drawn plate while the art loads
     const sd = (type.charCodeAt(0) * 13 + type.length * 7 + tier * 31 + PSEED * 101) | 0, R = k => hs(sd + k * 17, sd * 3 + k), sz = u * 1.06;
@@ -1105,6 +1120,52 @@
     const rc = [['#2a1c10', '#8c8478'], ['#b9c0c8', '#444a52'], ['#7a5618', '#fff0b0'], ['#6c7a8b', '#ffffff']][tier];
     [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(q => { const bx = cx + q[0] * h * 0.8, by = cy + q[1] * h * 0.8; g.fillStyle = '#120c08'; g.beginPath(); g.arc(bx, by, s * 0.045, 0, 7); g.fill(); g.fillStyle = rc[1]; g.beginPath(); g.arc(bx - .4, by - .4, s * 0.03, 0, 7); g.fill(); });
     g.restore();
+  }
+  // chassis: a rack of slots (dark backing + steel frame) with the wheels hung under it by two iron struts
+  function drawRack(g, pts, u, phase) {
+    const cells = pts.filter(p => p.cy <= 0 && p.type !== 'wheel'), wheels = pts.filter(p => p.type === 'wheel');
+    if (!cells.length) return;
+    const has = new Set(cells.map(c => key(c.cx, c.cy))), s = u * 0.5;
+    const bar = (x0, y0, x1, y1, w) => {
+      g.lineCap = 'round';
+      g.strokeStyle = 'rgba(0,0,0,.45)'; g.lineWidth = w + 3; g.beginPath(); g.moveTo(x0 + 1.5, y0 + 2.5); g.lineTo(x1 + 1.5, y1 + 2.5); g.stroke();
+      g.strokeStyle = '#0e0905'; g.lineWidth = w + 2; g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
+      g.strokeStyle = '#555b64'; g.lineWidth = w; g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
+      g.strokeStyle = 'rgba(210,225,240,.42)'; g.lineWidth = Math.max(1, w * 0.22); g.beginPath(); g.moveTo(x0 - w * 0.2, y0 - w * 0.2); g.lineTo(x1 - w * 0.2, y1 - w * 0.2); g.stroke();
+    };
+    if (phase === 0) {
+      cells.forEach(c => {
+        const x = c.x - s, y = c.y - s, gr = g.createLinearGradient(0, y, 0, y + u); gr.addColorStop(0, '#2a1f17'); gr.addColorStop(1, '#130e0a');
+        g.fillStyle = gr; g.fillRect(x, y, u, u);
+        g.fillStyle = 'rgba(255,220,170,.06)'; g.fillRect(x + u * 0.08, y + u * 0.14, u * 0.84, 1.5); g.fillRect(x + u * 0.08, y + u * 0.86, u * 0.84, 1.5);
+        for (let i = 0; i < 4; i++) { g.fillStyle = 'rgba(0,0,0,.35)'; g.beginPath(); g.arc(x + u * (0.2 + i * 0.2), y + u * 0.07, 1.6, 0, 7); g.fill(); }
+      });
+      wheels.forEach(w => { if (!has.has(key(w.cx, 0))) return; [-1, 1].forEach(sg => bar(w.x + sg * u * 0.4, w.y - u * 0.5, w.x + sg * u * 0.03, w.y + u * 0.2, u * 0.075)); });
+      return;
+    }
+    cells.forEach(c => {   // steel rack: perforated uprights, flat rails, gusset plates with 4 rivets at the outer corners (no bars between slots)
+      const x0 = c.x - s, x1 = c.x + s, y0 = c.y - s, y1 = c.y + s;
+      [[0, -1], [1, 0], [0, 1], [-1, 0]].forEach(d => {
+        if (has.has(key(c.cx + d[0], c.cy + d[1]))) {   // thin divider between two slots (drawn once)
+          if (d[0] > 0) bar(x1, y0, x1, y1, u * 0.035); else if (d[1] > 0) bar(x0, y1, x1, y1, u * 0.035);
+          return;
+        }
+        if (d[1]) bar(x0, d[1] < 0 ? y0 : y1, x1, d[1] < 0 ? y0 : y1, u * 0.075);
+        else { const xx = d[0] < 0 ? x0 : x1; bar(xx, y0, xx, y1, u * 0.11);
+          g.fillStyle = '#0a0807'; for (let i = 1; i < 9; i++) { g.beginPath(); g.arc(xx, y0 + u * i / 9, u * 0.014, 0, 7); g.fill(); } }
+      });
+    });
+    cells.forEach(c => [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(q => {
+      const rx = c.x + q[0] * s, ry = c.y + q[1] * s, out = !has.has(key(c.cx + q[0], c.cy)) && !has.has(key(c.cx, c.cy + q[1]));
+      if (!out) return;
+      const z = u * 0.115, ch = z * 0.45;
+      g.save(); g.translate(rx, ry); g.scale(q[0], q[1]);   // chamfer on the inner corner
+      g.beginPath(); g.moveTo(-z * 1.1, -z * 1.1); g.lineTo(z * 0.9, -z * 1.1); g.lineTo(z * 0.9, z * 0.9 - ch); g.lineTo(z * 0.9 - ch, z * 0.9); g.lineTo(-z * 1.1, z * 0.9); g.closePath();
+      g.fillStyle = '#4b5159'; g.fill(); g.strokeStyle = '#0e0905'; g.lineWidth = 2; g.stroke();
+      g.strokeStyle = 'rgba(210,225,240,.35)'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(-z * 1.0, z * 0.8); g.lineTo(-z * 1.0, -z * 1.0); g.lineTo(z * 0.8, -z * 1.0); g.stroke();
+      [[-0.55, -0.55], [0.4, -0.55], [-0.55, 0.4], [0.4, 0.4]].forEach(r => { g.fillStyle = '#1c1f23'; g.beginPath(); g.arc(r[0] * z, r[1] * z, z * 0.24, 0, 7); g.fill(); g.fillStyle = '#8a929c'; g.beginPath(); g.arc(r[0] * z - 0.3, r[1] * z - 0.3, z * 0.15, 0, 7); g.fill(); });
+      g.restore();
+    }));
   }
   function drawBody(g, pts, u, kind, ox, oy, seed) {
     if (!pts.length) return;
@@ -1243,7 +1304,8 @@
   const expandCost = () => Math.round(20 * Math.pow(1.3, S.unlocked.length - 9));
   function canExpand(x, y) {
     const u = unlockedSet();
-    if (u.has(key(x, y))) return false;
+    if (u.has(key(x, y)) || y > 1) return false;
+    if (y === 1) return !!S.parts[key(x, 0)];   // wheel row: only under an existing part
     return DIRS.some(d => S.parts[key(x + d[0], y + d[1])]);
   }
   let inspect = null, pendingUnlock = null;
@@ -1253,12 +1315,14 @@
     const k = key(x, y), u = unlockedSet(); const prevInspect = inspect; inspect = null;
     if (!u.has(k)) {
       if (!canExpand(x, y)) return;
-      if (S.unlocked.length >= maxCells()) return toast('Space limit for this arena: win to reach the next arena');
+      if (S.unlocked.filter(q => !q.endsWith(',1')).length >= maxCells()) return toast('Space limit for this arena: win to reach the next arena');
       const c = expandCost();
       if (S.coins < c) { sfx('deny'); return toast('You need ' + c + ' coins to expand'); }
       S.coins -= c; S.unlocked.push(k); sfx('expand'); toast('Space expanded'); changed(); return;
     }
     if (tool === 'erase') return erase(k);
+    if (!S.parts[k] && y === 1 && tool !== 'wheel') return sfx('deny'), toast('The bottom row is only for wheels');
+    if (!S.parts[k] && y !== 1 && tool === 'wheel') return sfx('deny'), toast('Wheels go on the bottom row');
     if (!S.parts[k] && isLocked(tool)) return sfx('deny'), toast(TYPES[tool].name + ' unlocks in arena ' + UNLOCK_LEAGUE[tool]);
     if (S.parts[k]) { inspect = prevInspect === k ? null : k; sfx('tick'); refreshUI(); return; }
     const cost = placeCost(tool);
@@ -1497,13 +1561,13 @@
     const bb = [layoutBot(b.A), layoutBot(b.B)];
     const maxW = Math.max(bb[0].x1 - bb[0].x0, bb[1].x1 - bb[1].x0) + 1, maxH = Math.max(bb[0].y1 - bb[0].y0, bb[1].y1 - bb[1].y0) + 1;
     const u = Math.min((half - 70) / maxW, (h * 0.66) / maxH, 84);
-    const sway = [0, 1].map(sd => { const ps = sd === 0 ? b.A : b.B, dd = sd === 0 ? b.deadA : b.deadB; const n = ps.filter(p => p.type === 'wheel' && !dd[p.i]).length; return n ? [Math.sin(T * 1.2 + sd * 2) * u * 0.2 * (1 + 0.4 * (Math.min(n, 3) - 1)), Math.sin(T * 2.6 + sd) * u * 0.03] : [0, 0]; });
+    const sway = [[0, 0], [0, 0]];   // robots roll on the floor: no sway or bobbing
     const wp = clamp((b.tp + 1.8) / 1.6, 0, 1), wEase = 1 - (1 - wp) * (1 - wp), walking = wp < 1 ? 1 : 0;
     const pos = (side, p) => {
       const box = bb[side], cxCells = (box.x0 + box.x1) / 2, cyCells = (box.y0 + box.y1) / 2;
       const dir = side === 0 ? 1 : -1;
       const base = (side === 0 ? half * 0.5 : half * 1.5) - dir * (1 - wEase) * half * 0.6;
-      const gy = h * 0.78 - (box.y1 - cyCells + 0.5) * u - u * 0.66 - 4;
+      const gy = h * 0.8 - u * 0.59 - (1 - cyCells) * u;   // the wheel row rests on the floor line
       return [base + dir * (p.x - cxCells) * u + sway[side][0], gy + (p.y - cyCells) * u + sway[side][1]];
     };
     // process events: muzzle flash at launch, sparks at impact
@@ -1525,11 +1589,11 @@
       if (e.died) b.fx.push({ k: 'boom', x: q[0], y: q[1], l: 0.45, m: 0.45 });
     }
     // tracks (they roll in during the first moments)
-    [0, 1].forEach(side => { const parts = side === 0 ? b.A : b.B, dd0 = side === 0 ? b.deadA : b.deadB; if (!parts.some(p => !dd0[p.i])) return; tracksFor(g, parts.map(p => { const q = pos(side, p); return { x: q[0], y: q[1] }; }), u, side === 0 ? 1 : -1, b.tp * 9, walking); });
+    [0, 1].forEach(side => { const parts = side === 0 ? b.A : b.B, dd0 = side === 0 ? b.deadA : b.deadB; if (!parts.some(p => !dd0[p.i])) return; tracksFor(g, parts.map(p => { const q = pos(side, p); return { x: q[0], y: q[1] }; }), u, side === 0 ? 1 : -1, b.tp * 9, walking, parts.some(p => p.type === 'wheel' && !dd0[p.i])); });
     // body outline + pipes between living neighbours
     [0, 1].forEach(side => {
       const parts = side === 0 ? b.A : b.B, dd = side === 0 ? b.deadA : b.deadB;
-      { const bp = parts.filter(p => !dd[p.i]).map(p => { const q = pos(side, p); return { x: q[0], y: q[1], cx: p.x * (side === 0 ? 1 : -1), cy: p.y }; }); drawBody(g, bp, u, side === 0 ? 'p' : 'e', 0, 0, side === 0 ? S.base : 5000 + S.seed); }
+      { const bp = parts.filter(p => !dd[p.i]).map(p => { const q = pos(side, p); return { x: q[0], y: q[1], cx: p.x * (side === 0 ? 1 : -1), cy: p.y, type: p.type }; }); drawRack(g, bp, u, 0); }
     });
     [0, 1].forEach(side => {
       const parts = side === 0 ? b.A : b.B, hp = side === 0 ? b.hpA : b.hpB, fl = side === 0 ? b.flashA : b.flashB, dd = side === 0 ? b.deadA : b.deadB;
@@ -1540,13 +1604,13 @@
           for (let k = 0; k < 2; k++) { const ph = (T * 0.6 + k * 0.5 + p.i * 0.13) % 1; puff(g, x + Math.sin(ph * 4 + k) * 6, y - ph * u * 0.8, 8 + ph * 14, 0.5 * (1 - ph), true); }
           return;
         }
-        PSEED = (p.x * 31 + p.y * 17 + (side ? 101 : 0)) & 1023; drawPart(g, p.type, x, y, u * 0.95, T, side === 0 ? 1 : -1, hp[p.i] / p.maxhp);
+        PSEED = (p.x * 31 + p.y * 17 + (side ? 101 : 0)) & 1023; WROT = wEase * 12 * (side === 0 ? 1 : -1); drawPart(g, p.type, x, y, u * 0.95, T, side === 0 ? 1 : -1, hp[p.i] / p.maxhp); WROT = 0;
         if (fl[p.i] > 0) { g.fillStyle = 'rgba(255,240,200,' + fl[p.i] * 2 + ')'; rr(g, x - u * 0.42, y - u * 0.42, u * 0.84, u * 0.84, 6); g.fill(); fl[p.i] -= dt; }
       });
     });
     [0, 1].forEach(side => {
       const parts = side === 0 ? b.A : b.B, dd = side === 0 ? b.deadA : b.deadB;
-      drawLinks(g, parts.filter(p => !dd[p.i]).map(p => { const q = pos(side, p); return { x: q[0], y: q[1], cx: p.x * (side === 0 ? 1 : -1), cy: p.y, pl: p.type === 'plate' }; }), u);
+      { const lp = parts.filter(p => !dd[p.i]).map(p => { const q = pos(side, p); return { x: q[0], y: q[1], cx: p.x * (side === 0 ? 1 : -1), cy: p.y, type: p.type, pl: p.type === 'wheel' }; }); drawRack(g, lp, u, 1); drawLinks(g, lp, u); }
     });
     // projectiles
     b.res.events.forEach(e => {
@@ -1589,19 +1653,20 @@
     // faint floor grid
     const u = CELL * view.z;
     const conn = connectedSet();
-    tracksFor(g, Object.keys(S.parts).map(k => { const [x, y] = k.split(',').map(Number), q = toScreen(x, y); return { x: q[0], y: q[1] }; }), u, 1, 0, 0);
-    drawBody(g, Object.keys(S.parts).filter(k => conn.has(k)).map(k => { const [x, y] = k.split(',').map(Number), q = toScreen(x, y); return { x: q[0], y: q[1], cx: x, cy: y }; }), u, 'p', 0, 0, S.base);
+    tracksFor(g, Object.keys(S.parts).map(k => { const [x, y] = k.split(',').map(Number), q = toScreen(x, y); return { x: q[0], y: q[1] }; }), u, 1, 0, 0, Object.keys(S.parts).some(k => S.parts[k] === 'wheel'));
+    const rackPts = S.unlocked.map(k => { const [x, y] = k.split(',').map(Number), q = toScreen(x, y); return { x: q[0], y: q[1], cx: x, cy: y, type: S.parts[k] || 'empty' }; });
+    drawRack(g, rackPts, u, 0);
     const un = unlockedSet();
     const cellsToDraw = new Map();
     S.unlocked.forEach(k => cellsToDraw.set(k, 'u'));
     Object.keys(S.parts).forEach(k => { const [x, y] = k.split(',').map(Number); DIRS.forEach(d => { const kk = key(x + d[0], y + d[1]); if (!un.has(kk)) cellsToDraw.set(kk, 'l'); }); });
     const cost = expandCost();
-    const capped = S.unlocked.length >= maxCells();
+    const capped = S.unlocked.filter(q => !q.endsWith(',1')).length >= maxCells();
     cellsToDraw.forEach((kind, k) => {
       const [x, y] = k.split(',').map(Number), [sx, sy] = toScreen(x, y);
       if (sx < -u || sx > w + u || sy < -u || sy > h + u) return;
       if (kind === 'u' && S.parts[k]) return;
-      if (kind === 'l' && capped) return;
+      if (kind === 'l' && (capped && y !== 1 || !canExpand(x, y))) return;
       const z = view.z, ok = kind === 'u' || S.coins >= cost;
       if (kind === 'u') { g.save(); g.setLineDash([5 * z, 4 * z]); g.strokeStyle = 'rgba(255,230,190,.3)'; g.lineWidth = 1.4; rr(g, sx - u / 2 + 4, sy - u / 2 + 4, u - 8, u - 8, 5 * z); g.stroke(); g.restore(); return; }
       const a1 = ok ? 1 : 0.5;
@@ -1623,7 +1688,8 @@
         g.strokeStyle = '#ef6a52'; g.lineWidth = 2.4; g.lineCap = 'round'; g.beginPath(); g.moveTo(cx2 - cr, cy2 - cr); g.lineTo(cx2 + cr, cy2 + cr); g.moveTo(cx2 + cr, cy2 - cr); g.lineTo(cx2 - cr, cy2 + cr); g.stroke(); g.restore();
       }
     });
-    drawLinks(g, Object.keys(S.parts).map(k => { const [x, y] = k.split(',').map(Number), q = toScreen(x, y); return { x: q[0], y: q[1], cx: x, cy: y, pl: S.parts[k] === 'plate' }; }), u);
+    drawRack(g, rackPts, u, 1);
+    drawLinks(g, Object.keys(S.parts).map(k => { const [x, y] = k.split(',').map(Number), q = toScreen(x, y); return { x: q[0], y: q[1], cx: x, cy: y, pl: S.parts[k] === 'wheel' }; }), u);
     if (inspect && S.parts[inspect] && mode === 'build') {
       const it = S.parts[inspect], [ix, iy] = inspect.split(',').map(Number), [isx, isy] = toScreen(ix, iy), col = INFL_COL[it];
       g.save(); g.strokeStyle = '#f0c577'; g.lineWidth = 2.5; g.beginPath(); g.arc(isx, isy, u * 0.46, 0, 7); g.stroke(); g.restore();
@@ -1674,10 +1740,10 @@
     enemy.cells.forEach(c => { x0 = Math.min(x0, c.x); x1 = Math.max(x1, c.x); y0 = Math.min(y0, c.y); y1 = Math.max(y1, c.y); });
     const u = Math.min((cv.width - 30) / (x1 - x0 + 1), (cv.height - 20) / (y1 - y0 + 1), 70);
     curLvl = enemy.lv;
-    const ep = enemy.cells.map(c => ({ c, x: cv.width / 2 - ((c.x - (x0 + x1) / 2)) * u, y: cv.height / 2 + (c.y - (y0 + y1) / 2) * u, cx: -c.x, cy: c.y, pl: c.type === 'plate' }));
-    drawBody(g, ep, u, 'e', 0, 0, 5000 + S.seed);
+    const ep = enemy.cells.map(c => ({ c, x: cv.width / 2 - ((c.x - (x0 + x1) / 2)) * u, y: cv.height / 2 + (c.y - (y0 + y1) / 2) * u, cx: -c.x, cy: c.y, pl: c.type === 'plate' || c.type === 'wheel' }));
+    ep.forEach(q => { q.type = q.c.type; }); drawRack(g, ep, u, 0);
     ep.forEach(q => { PSEED = (-q.c.x * 31 + q.c.y * 17) & 1023; drawPart(g, q.c.type, q.x, q.y, u * 0.95, T, -1); });
-    drawLinks(g, ep, u);
+    drawRack(g, ep, u, 1); drawLinks(g, ep, u);
   }
 
   // ------------------------------------------------------------ loop
