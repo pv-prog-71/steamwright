@@ -101,7 +101,12 @@
   .tile .uprow { display: flex; justify-content: space-between; align-items: center; gap: 4px; padding: 4px 6px 6px; border-top: 1px solid var(--line); font-size: 12px; color: var(--ink-dim); }
   .tile .up { padding: 3px 6px; font-size: 12px; border-radius: 6px; }
   #partDesc { margin-top: 8px; min-height: 2.6em; }
-  .tile canvas { width: 40px; height: 40px; background: #17100c; border-radius: 6px; }
+  .tile canvas { width: 54px; height: 54px; background: radial-gradient(circle at 50% 40%, #4a3622, #140d09 78%); border-radius: 8px; border: 1px solid #6a4f36; box-shadow: inset 0 0 8px #000c, 0 1px 0 rgba(255,225,170,.12); }
+  .tile .pick b { font-family: 'Cinzel', Georgia, serif; font-weight: 600; letter-spacing: .03em; font-size: 13px; }
+  .tile .cost::before { content: ''; display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; background: radial-gradient(circle at 35% 30%, #f6d58a, #b17a2a 70%); box-shadow: 0 0 0 1px #3a2810; }
+  .tile .lvl { font-weight: 700; letter-spacing: .06em; text-transform: uppercase; font-size: 11px; opacity: .7; }
+  .tile .lvl.on { color: var(--steam); opacity: 1; }
+  .tile .up.can { background: linear-gradient(#e0ad52, #b87a28); color: #20150a; border-color: #f0c577; font-weight: 700; }
   .tile .cost { color: var(--brass); font-weight: 700; font-variant-numeric: tabular-nums; }
   .upg { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 3px 0; font-size: 14px; }
   .upg span { color: var(--ink-dim); }
@@ -110,7 +115,7 @@
   .bigpct { font-family: 'Cinzel', Georgia, serif; font-size: 28px; line-height: 1.1; color: var(--steam); }
   .row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
   canvas#enemyView { position: absolute; inset: 0; box-shadow: inset 0 0 20px #000; width: 100%; height: 100%; background: #120d0a; border-radius: 8px; border: 1px solid var(--line); display: block; }
-  @media (max-height: 560px) { aside h2, #enemyInfo { display: none; } aside .card { padding: 6px 8px; } .tile .cost { font-size: 12px; } .tools button { padding: 2px 8px; font-size: 13px; } .tile canvas { width: 30px; height: 30px; } .tile .pick { padding: 3px 2px 2px; font-size: 12px; } .tile .uprow { padding: 2px 4px 3px; } button.primary { font-size: 15px; padding: 6px 10px; } label.auto { font-size: 12px; margin-top: 4px; } .bigpct { font-size: 24px; } .statbox { font-size: 12px; padding: 3px 8px; } }
+  @media (max-height: 560px) { aside h2, #enemyInfo { display: none; } aside .card { padding: 6px 8px; } .tile .cost { font-size: 12px; } .tools button { padding: 2px 8px; font-size: 13px; } .tile canvas { width: 34px; height: 34px; } .tile .pick { padding: 3px 2px 2px; font-size: 12px; } .tile .uprow { padding: 2px 4px 3px; } button.primary { font-size: 15px; padding: 6px 10px; } label.auto { font-size: 12px; margin-top: 4px; } .bigpct { font-size: 24px; } .statbox { font-size: 12px; padding: 3px 8px; } }
   label.auto { display: flex; gap: 8px; align-items: center; margin-top: 8px; color: var(--ink-dim); font-size: 14px; }
   .small { font-size: 13px; color: var(--ink-dim); }
   .chip { display: inline-block; padding: 3px 10px; border-radius: 6px; border: 1px dashed rgba(232,194,120,.6); color: #e8c278; font-weight: 700; font-size: 14px; background: rgba(0,0,0,.25); }
@@ -163,7 +168,6 @@
       <div class="row" style="margin-top:6px"><div><div class="small" id="enemyName">–</div><div class="small" id="enemyInfo">–</div></div><div style="text-align:right"><div class="bigpct" id="pct">–</div><div class="small" title="The game simulates 120 identical fights with different dice rolls and counts how often you win">win chance</div></div></div>
       <div class="meter" style="margin:6px 0 8px"><i id="pctBar"></i></div>
       <button class="primary" id="fight">Fight!</button>
-      <label class="auto" title="Keeps fighting by itself, even while the page is closed"><input type="checkbox" id="auto"> Auto battles</label>
     </section>
   </aside>
 
@@ -686,10 +690,25 @@
       const r0 = hs(seed * 131 + ix, iy * 137 + seed), r1 = hs(seed * 17 + ix * 3 + 1, iy * 5 + 9), r2 = hs(seed + ix * 7 + 5, iy * 11 + seed * 3), r3 = hs(ix * 13 + 2, seed * 19 + iy * 3);
       const wx = (ix + 0.5) * STEP + (r1 - 0.5) * STEP * 1.1, wy = (iy + 0.5) * STEP + (r2 - 0.5) * STEP * 1.1;
       if (!near(wx, wy) || r0 < 0.12) continue;
+      if (r0 >= 0.6 && r0 < 0.78) { // pipes: both ends (and the elbow tip) must stay over the heap
+        const horiz = r3 > 0.5, L2 = (0.3 + r1 * 0.35) / 2, ex = horiz ? L2 : 0, ey = horiz ? 0 : L2;
+        const tip = r1 > 0.5 ? [horiz ? L2 : 0, horiz ? 0 : L2] : null;
+        if (!near(wx + ex, wy + ey) || !near(wx - ex, wy - ey)) continue;
+        if (tip && !near(wx + tip[0] + (horiz ? 0 : 0.3), wy + tip[1] + (horiz ? 0.3 : 0)) && !near(wx + tip[0] - (horiz ? 0 : 0.3), wy + tip[1] - (horiz ? 0.3 : 0))) continue;
+      }
       const X = sx(wx), Y = sy(wy); if (X < -u * 2 || X > W + u * 2 || Y < -u * 2 || Y > H + u * 2) continue;
-      const k = r0 < 0.6 ? 'gear' : r0 < 0.78 ? 'pipe' : r0 < 0.9 ? 'tank' : 'nut';
+      const k = r0 < 0.78 ? 'gear' : r0 < 0.9 ? 'tank' : 'nut';
       items.push({ k, X, Y, r1, r2, r3, z: k === 'plate' ? 0 : k === 'gear' ? 1 : k === 'tank' ? 2 : k === 'pipe' ? 3 : 4 });
     }
+    // drop stragglers: items with no other item close by look like floating objects
+    const D2 = (u * 0.42) * (u * 0.42);
+    // keep only clusters of at least 4 items (and connected to each other)
+    const comp = items.map(() => -1); let nc = 0; const csize = [];
+    items.forEach((a, i) => { if (comp[i] >= 0) return; const st = [i]; comp[i] = nc; let n = 0;
+      while (st.length) { const j = st.pop(); n++; items.forEach((b, m) => { if (comp[m] < 0 && (items[j].X - b.X) * (items[j].X - b.X) + (items[j].Y - b.Y) * (items[j].Y - b.Y) < D2) { comp[m] = nc; st.push(m); } }); }
+      csize[nc++] = n; });
+    const kept = items.filter((a, i) => csize[comp[i]] >= 4);
+    items.length = 0; kept.forEach(k => items.push(k));
     items.sort((a, b) => a.z - b.z);
     items.forEach(it => {
       g.save(); g.translate(it.X, it.Y);
@@ -723,9 +742,6 @@
   function drawBody(g, pts, u, kind, ox, oy, seed) {
     if (!pts.length) return;
     drawJunk(g, pts, u, seed || 1);
-    // weathering over the whole heap
-    g.save(); g.globalAlpha = 0.28; if (!WPAT) WPAT = g.createPattern(weatherTex(), 'repeat');
-    g.beginPath(); pts.forEach(p => g.rect(p.x - u * 1.1, p.y - u * 1.1, u * 2.2, u * 2.2)); g.clip(); g.fillStyle = WPAT; g.fillRect(pts[0].x - 4000, pts[0].y - 4000, 8000, 8000); g.restore();
   }
   let WPAT = null;
   // pipes in relief: curved, irregular, with flanges, drop shadow and occasional valves
@@ -864,7 +880,7 @@
     }
     if (tool === 'erase') return erase(k);
     if (S.parts[k]) return toast('Slot taken: long-press or right-click to remove');
-    const cost = TYPES[tool].cost;
+    const cost = placeCost(tool);
     if (S.coins < cost) return toast('You need ' + cost + ' coins');
     S.coins -= cost; S.parts[k] = tool; changed();
     if (!connectedSet().has(k)) toast('Not connected to the core: this part will not work');
@@ -875,6 +891,7 @@
     if (t === 'core') return toast('The core cannot be removed');
     S.coins += TYPES[t].cost; delete S.parts[k]; changed();
   }
+  function placeCost(t) { return Math.round(TYPES[t].cost * (1 + 0.3 * (S.lv[t] || 0))); }
   function upgradeCost(t) { return Math.round(40 * Math.pow(1.7, S.lv[t] || 0)); }
 
   // pointer handling
@@ -928,20 +945,21 @@
       curLvl = null; drawPart(cv.getContext('2d'), t, 44, 44, 76, 0.5, 1);
       const nm = document.createElement('b'); nm.textContent = t === 'core' ? 'Core' : TYPES[t].name;
       const c = document.createElement('div'); c.className = 'cost'; c.textContent = t === 'core' ? 'fixed' : TYPES[t].cost;
+      const lv = document.createElement('span'); lv.className = 'lvl';
       pick.append(cv, nm, c); pick.title = TYPES[t].desc;
       if (t === 'core') pick.disabled = true; else pick.addEventListener('click', () => { tool = t; lastTool = t; refreshUI(); });
       const row = document.createElement('div'); row.className = 'uprow';
-      const lv = document.createElement('span'); const up = document.createElement('button'); up.className = 'up';
+      const up = document.createElement('button'); up.className = 'up';
       up.addEventListener('click', () => { const cc = upgradeCost(t); if (S.coins >= cc) { S.coins -= cc; S.lv[t] = (S.lv[t] || 0) + 1; changed(); } });
       row.append(lv, up); el.append(pick, row); box.appendChild(el);
-      tiles[t] = { el, lv, up };
+      tiles[t] = { el, lv, up, c };
     });
   }
   function refreshUI() {
     $('coins').textContent = Math.floor(S.coins);
     $('league').textContent = S.league;
     $('streak').textContent = S.streak + '/' + needWins(S.league);
-    Object.keys(tiles).forEach(t => { const T_ = tiles[t], c = upgradeCost(t); T_.el.classList.toggle('sel', t === tool); T_.lv.textContent = 'lv. ' + (S.lv[t] || 0); T_.up.textContent = '▲ ' + c; T_.up.title = 'Upgrade: +20% to this part'; T_.up.disabled = S.coins < c; });
+    Object.keys(tiles).forEach(t => { const T_ = tiles[t], c = upgradeCost(t); T_.el.classList.toggle('sel', t === tool); T_.lv.textContent = 'Lv ' + (S.lv[t] || 0); T_.lv.classList.toggle('on', (S.lv[t] || 0) > 0); if (t !== 'core') T_.c.textContent = placeCost(t); T_.up.classList.toggle('can', S.coins >= c); T_.up.textContent = '▲ ' + c; T_.up.title = 'Upgrade: +20% to this part'; T_.up.disabled = S.coins < c; });
     { const ec = expandCost(), full = S.unlocked.length >= maxCells(), chip = $('expandPrice'); chip.textContent = full ? '+ slot: league limit' : '+ slot ' + ec; chip.classList.toggle('no', full || S.coins < ec); }
     $('hint').textContent = TYPES[tool].name + ': ' + TYPES[tool].desc + '  ·  Long-press a part to remove it';
     $('tools').style.display = mode === 'build' ? '' : 'none';
@@ -1178,7 +1196,7 @@
       if (mode === 'arena' && battle) drawArena(bctx, w, h, dt); else drawBuild(bctx, w, h);
       if ((enemyTick -= dt) <= 0) { drawEnemyView(); enemyTick = 0.06; }
       if (toastT > 0 && (toastT -= dt) <= 0) $('toast').classList.remove('on');
-      if (resultShown && S.auto && mode === 'arena' && (autoWait -= dt) <= 0) { endBattleView(); startBattle(); }
+      
     } catch (e) { console.error(e); }
     requestAnimationFrame(frame);
   }
@@ -1191,30 +1209,28 @@
   $('zin').addEventListener('click', () => zoomBy(1.2));
   $('zout').addEventListener('click', () => zoomBy(1 / 1.2));
   $('center').addEventListener('click', () => { userMoved = false; fitView(); });
-  $('auto').addEventListener('change', e => { S.auto = e.target.checked; save(); });
-  $('arenabar').addEventListener('click', e => { const s = e.target.dataset && e.target.dataset.speed; if (s) speed = +s; });
+    $('arenabar').addEventListener('click', e => { const s = e.target.dataset && e.target.dataset.speed; if (s) speed = +s; });
   $('reset').addEventListener('click', () => {
     if (!$('reset').dataset.sure) { $('reset').dataset.sure = 1; $('reset').textContent = 'Sure? Tap again'; setTimeout(() => { delete $('reset').dataset.sure; $('reset').textContent = 'Restart'; }, 3000); return; }
     delete $('reset').dataset.sure; $('reset').textContent = 'Restart';
-    S = freshState(); enemy = null; userMoved = false; endBattleView(); $('auto').checked = false; changed();
+    S = freshState(); enemy = null; userMoved = false; endBattleView(); changed();
   });
   window.addEventListener('resize', () => { fit(); if (!userMoved) fitView(); });
 
-  // offline progress: while the page was closed with auto on, the robot kept fighting (simplified)
+  // offline progress: while the page was closed, the robot kept fighting (simplified)
   function offline() {
-    if (!S.auto || !S.last) return;
+    if (!S.last) return;
     const secs = Math.min((Date.now() - S.last) / 1000, 4 * 3600);
     if (secs < 60) return;
     const fights = Math.floor(secs / 40), L = S.league;
     const p = chance === null ? 0 : chance;
     const gain = Math.round(fights * (p * (20 + 8 * L) + (1 - p) * (6 + 2 * L)) * 0.5);
-    if (gain > 0) { S.coins += gain; setTimeout(() => toast('While you were away: +' + gain + ' coins'), 400); }
+    if (gain > 0) { S.coins += gain; setTimeout(() => toast('Your robot kept fighting while you were away: +' + gain + ' coins'), 400); }
   }
 
   load();
   fit();
   buildPalette();
-  $('auto').checked = !!S.auto;
   fitView();
   enemy = genEnemy(S.league, S.seed);
   recompute();
