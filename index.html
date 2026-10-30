@@ -1,13 +1,7 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#17120f">
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Steamwright</title>
+<meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+Sans:wght@400;500;700&family=Cinzel:wght@600;800&display=swap">
-</head>
-<body>
 <style>
   :root {
     color-scheme: dark;
@@ -36,7 +30,8 @@
   }
   html { height: 100%; }
   h1, h2 { font-family: 'Cinzel', Georgia, serif; margin: 0; letter-spacing: 0.04em; }
-  h1 { font-size: 20px; color: #e2b564; text-shadow: 0 1px 0 #6b4510, 0 2px 3px #000; }
+  h1 { font-size: 20px; color: #e2b564; background: linear-gradient(#fff6d0 0%, #f6d684 30%, #c58a2c 48%, #5c3a10 52%, #d9a850 56%, #f6d684 78%, #9a6a24 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: .08em; filter: drop-shadow(1px 0 0 #24140a) drop-shadow(-1px 0 0 #24140a) drop-shadow(0 -1px 0 #24140a) drop-shadow(0 1px 0 #24140a) drop-shadow(0 3px 0 #4a2c0c) drop-shadow(0 5px 6px #000); }
+  .ico { width: 22px; height: 22px; flex: none; align-self: center; filter: drop-shadow(0 1px 2px #000a); }
   h2 { font-size: 12px; color: var(--ink-dim); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 6px; }
   header { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 20px; }
   .stat { display: flex; gap: 6px; align-items: baseline; }
@@ -95,12 +90,17 @@
   button:disabled { opacity: .45; cursor: default; }
   button.primary { background: linear-gradient(#e0ad52, #b87a28); color: #20150a; font-weight: 700; border-color: #f0c577; font-size: 18px; padding: 10px 14px; width: 100%; letter-spacing: .04em; }
   button.primary:disabled { filter: grayscale(.6); }
-  .parts { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(84px, 1fr); gap: 6px; overflow-x: auto; scrollbar-width: thin; padding-bottom: 2px; }
+  .parts { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(64px, 1fr); gap: 6px; overflow-x: auto; scrollbar-width: thin; padding-bottom: 2px; }
   .statbox { position: absolute; left: 24px; top: 24px; z-index: 4; font-size: 13px; line-height: 1.45; color: var(--ink-dim); background: #0009; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; pointer-events: none; }
   .statbox b { color: var(--steam); }
   .tile { display: flex; flex-direction: column; background: linear-gradient(rgba(30,22,16,.35), rgba(18,12,8,.55)), var(--plate) 40px 70px / 256px 256px, #261c15; border: 1px solid #6a4f36; border-radius: 5px; overflow: hidden; box-shadow: inset 0 1px 0 rgba(255,225,170,.12), 0 1px 3px #000a; }
+  .tile .cost::after, .tile .up::after, .chip.priced::after { content: ''; display: inline-block; width: 8px; height: 12px; margin-left: 4px; vertical-align: -1px; background-color: currentColor; -webkit-mask: var(--gly) center / contain no-repeat; mask: var(--gly) center / contain no-repeat; }
+  :root { --gly: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='8 6 8 12'%3E%3Cpath d='M12 7v10M9.2 9.8h4.4a1.7 1.7 0 0 1 0 3.4H10' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round'/%3E%3C/svg%3E"); }
+  .tile.locked .cost::after, .tile .cost.fixed::after { display: none; }
+  .tile.more { align-items: center; justify-content: center; text-align: center; border-style: dashed; border-color: #5b4330; background: rgba(18,12,8,.5); color: var(--ink-dim); padding: 6px; gap: 4px; }
+  .tile.more b { font-family: 'Cinzel', Georgia, serif; font-size: 34px; color: #7a6040; line-height: 1; }
+  .tile.more span { font-size: 12px; line-height: 1.2; }
   .tile.locked { filter: grayscale(.85) brightness(.75); opacity: .6; }
-  .tile.locked .cost::before { display: none; }
   .tile.sel { border-color: var(--brass); box-shadow: 0 0 0 1px var(--brass) inset; background: #3a2c1e; }
   .tile .pick { border: 0; background: none; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 4px 4px; font-size: 13px; line-height: 1.2; border-radius: 0; }
   .tile .uprow { display: flex; justify-content: space-between; align-items: center; gap: 4px; padding: 4px 6px 6px; border-top: 1px solid var(--line); font-size: 12px; color: var(--ink-dim); }
@@ -108,7 +108,6 @@
   #partDesc { margin-top: 8px; min-height: 2.6em; }
   .tile canvas { width: 54px; height: 54px; background: radial-gradient(circle at 50% 40%, #4a3622, #140d09 78%); border-radius: 8px; border: 1px solid #6a4f36; box-shadow: inset 0 0 8px #000c, 0 1px 0 rgba(255,225,170,.12); }
   .tile .pick b { font-family: 'Cinzel', Georgia, serif; font-weight: 600; letter-spacing: .03em; font-size: 13px; }
-  .tile .cost::before { content: ''; display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; background: radial-gradient(circle at 35% 30%, #f6d58a, #b17a2a 70%); box-shadow: 0 0 0 1px #3a2810; }
   .tile .lvl { font-weight: 700; letter-spacing: .06em; text-transform: uppercase; font-size: 11px; opacity: .7; }
   .tile .lvl.on { color: var(--steam); opacity: 1; }
   .tile .up.can { background: linear-gradient(#e0ad52, #b87a28); color: #20150a; border-color: #f0c577; font-weight: 700; }
@@ -142,7 +141,7 @@
   #splash.gone { opacity: 0; pointer-events: none; }
   #splash::before { content: ""; position: absolute; inset: 0; background: linear-gradient(to top, rgba(8,5,3,.92) 0%, rgba(8,5,3,.55) 34%, rgba(8,5,3,0) 62%); }
   #splash .box { position: relative; text-align: center; padding: 0 max(16px, env(safe-area-inset-left, 0px)) max(22px, env(safe-area-inset-bottom, 0px)); }
-  #splash h2 { font-family: 'Cinzel', Georgia, serif; font-size: clamp(30px, 6vw, 56px); margin: 0; color: #f0cd7a; letter-spacing: .06em; text-shadow: 0 3px 14px #000; }
+  #splash h2 { font-family: 'Cinzel', Georgia, serif; font-size: clamp(30px, 6vw, 56px); margin: 0; color: #f0cd7a; letter-spacing: .06em; background: linear-gradient(#fff6d0 0%, #f6d684 30%, #c58a2c 48%, #5c3a10 52%, #d9a850 56%, #f6d684 78%, #9a6a24 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(2px 0 0 #24140a) drop-shadow(-2px 0 0 #24140a) drop-shadow(0 -2px 0 #24140a) drop-shadow(0 2px 0 #24140a) drop-shadow(0 5px 0 #4a2c0c) drop-shadow(0 8px 14px #000); }
   #splash p { margin: 6px 0 14px; color: #e6d6b8; font-size: clamp(14px, 2vw, 18px); text-shadow: 0 2px 8px #000; }
   #splash button { font-family: 'Cinzel', Georgia, serif; font-size: 18px; padding: 10px 26px; border-radius: 8px; border: 2px solid #5b4330; background: linear-gradient(#e0b060, #b57a30); color: #2a1a0c; cursor: pointer; font-weight: 700; }
   @media (max-height: 460px) { #splash h2 { font-size: 26px; } #splash p { margin: 2px 0 8px; } #splash button { padding: 6px 20px; font-size: 15px; } }
@@ -156,9 +155,9 @@
 <header>
   <img class="avatar" id="avatar" alt="The inventor" src="data:image/webp;base64,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">
   <h1>Steamwright</h1>
-  <div class="stat"><span>Coins</span><b id="coins">0</b></div>
-  <div class="stat"><span>League</span><b id="league">1</b></div>
-  <div class="stat"><span>League wins</span><b id="streak">0/3</b></div>
+  <div class="stat" title="Coins"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><defs><radialGradient id="gc" cx="35%" cy="30%" r="80%"><stop offset="0" stop-color="#fbe3a0"/><stop offset=".55" stop-color="#d5a24a"/><stop offset="1" stop-color="#7a4f16"/></radialGradient></defs><circle cx="12" cy="12" r="10.5" fill="url(#gc)" stroke="#2c1a08" stroke-width="1.4"/><circle cx="12" cy="12" r="7.2" fill="none" stroke="#7a4f16" stroke-width="1.3"/><path d="M12 7.6v8.8M9.4 10.2h4.2a1.6 1.6 0 0 1 0 3.2H10" fill="none" stroke="#6b4210" stroke-width="1.4" stroke-linecap="round"/></svg><b id="coins">0</b></div>
+  <div class="stat" title="League"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="gt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fbe3a0"/><stop offset=".6" stop-color="#d5a24a"/><stop offset="1" stop-color="#8a5a1c"/></linearGradient></defs><path d="M7 3h10v5.5a5 5 0 0 1-10 0z" fill="url(#gt)" stroke="#2c1a08" stroke-width="1.3" stroke-linejoin="round"/><path d="M7 5H3.8c0 3 1.2 4.6 3.4 5M17 5h3.2c0 3-1.2 4.6-3.4 5" fill="none" stroke="#2c1a08" stroke-width="1.4" stroke-linecap="round"/><path d="M12 13.5V17M8.5 20.5h7M9.6 17h4.8l.8 3.5H8.8z" fill="url(#gt)" stroke="#2c1a08" stroke-width="1.3" stroke-linejoin="round"/></svg><b id="league">1</b></div>
+  <div class="stat" title="Wins needed to reach the next league"><span>Wins</span><b id="streak">0/3</b></div>
   <div class="spacer"></div>
   <button id="reset" title="Erase your progress">Restart</button>
 </header>
@@ -169,7 +168,7 @@
     <div class="hint" id="hint"></div>
     <div class="statbox" id="botStats"></div>
     <div class="tools" id="tools">
-      <button id="zout" title="Zoom out">−</button><button id="zin" title="Zoom in">+</button><button id="eraseBtn" title="Erase mode: tap a part to remove it (refund of the base price)">Erase</button><button id="center" title="Center the robot">Center</button><span class="chip" id="expandPrice" title="Cost to add a new slot"></span>
+      <button id="zout" title="Zoom out">−</button><button id="zin" title="Zoom in">+</button><button id="center" title="Center the robot">Center</button><span class="chip" id="expandPrice" title="Cost to add a new slot"></span>
     </div>
     <div class="toast" id="toast"></div>
     <div class="arenabar" id="arenabar">
@@ -1035,16 +1034,16 @@
   }, { passive: false });
 
   // ------------------------------------------------------------ UI building
-  const tiles = {};
+  const tiles = {}; let moreEl = null;
   function buildPalette() {
     const box = $('parts'); box.innerHTML = '';
-    UPGRADABLE.slice().sort((x, y) => ((x === 'core') - (y === 'core')) || (UNLOCK_LEAGUE[x] - UNLOCK_LEAGUE[y])).forEach(t => {
+    UPGRADABLE.slice().sort((x, y) => ((y === 'core') - (x === 'core')) || (UNLOCK_LEAGUE[x] - UNLOCK_LEAGUE[y])).forEach(t => {
       const el = document.createElement('div'); el.className = 'tile'; el.dataset.type = t;
       const pick = document.createElement('button'); pick.className = 'pick';
       const cv = document.createElement('canvas'); cv.width = 88; cv.height = 88;
       curLvl = null; drawPart(cv.getContext('2d'), t, 44, 44, 76, 0.5, 1);
       const nm = document.createElement('b'); nm.textContent = t === 'core' ? 'Core' : TYPES[t].name;
-      const c = document.createElement('div'); c.className = 'cost'; c.textContent = t === 'core' ? 'fixed' : TYPES[t].cost;
+      const c = document.createElement('div'); c.className = 'cost' + (t === 'core' ? ' fixed' : ''); c.textContent = t === 'core' ? 'fixed' : TYPES[t].cost;
       const lv = document.createElement('span'); lv.className = 'lvl';
       pick.append(cv, nm, c); pick.title = TYPES[t].desc;
       if (t === 'core') pick.disabled = true; else pick.addEventListener('click', () => { tool = t; lastTool = t; if (S.newParts) S.newParts = S.newParts.filter(x => x !== t); refreshUI(); });
@@ -1054,16 +1053,19 @@
       row.append(lv, up); el.append(pick, row); box.appendChild(el);
       tiles[t] = { el, lv, up, c, cv, pickBtn: pick, tier: -1 };
     });
+    moreEl = document.createElement('div'); moreEl.className = 'tile more'; moreEl.innerHTML = '<b>?</b><span></span>'; box.appendChild(moreEl);
   }
   function refreshUI() {
     $('coins').textContent = Math.floor(S.coins);
     $('league').textContent = S.league;
     $('streak').textContent = S.streak + '/' + needWins(S.league);
-    Object.keys(tiles).forEach(t => { const T_ = tiles[t], c = upgradeCost(t);
+    const lockedL = Object.keys(tiles).filter(isLocked).map(t => UNLOCK_LEAGUE[t]), nextL = lockedL.length ? Math.min.apply(null, lockedL) : 0;
+    const farN = lockedL.filter(l => l > nextL).length;
+    if (moreEl) { moreEl.style.display = farN ? '' : 'none'; moreEl.lastChild.textContent = '+' + farN + ' more part' + (farN > 1 ? 's' : '') + ' to discover'; }
+    Object.keys(tiles).forEach(t => { const T_ = tiles[t], c = upgradeCost(t); T_.el.style.display = isLocked(t) && UNLOCK_LEAGUE[t] > nextL ? 'none' : '';
       { const L_ = S.lv[t] || 0; if (T_.tier !== L_) { T_.tier = L_; const g2 = T_.cv.getContext('2d'); g2.clearRect(0, 0, 88, 88); curLvl = S.lv; drawPart(g2, t, 44, 44, 76, 0.5, 1); curLvl = null; } } T_.el.classList.toggle('sel', t === tool); T_.lv.textContent = 'Lv ' + (S.lv[t] || 0); T_.lv.classList.toggle('on', (S.lv[t] || 0) > 0); const lk = isLocked(t); T_.el.classList.toggle('locked', lk); T_.el.classList.toggle('fresh', !lk && (S.newParts || []).includes(t)); T_.pickBtn.disabled = t === 'core' || lk; if (t !== 'core') T_.c.textContent = lk ? 'League ' + UNLOCK_LEAGUE[t] : placeCost(t); T_.up.classList.toggle('can', S.coins >= c); T_.up.textContent = '▲ ' + c; T_.up.title = 'Upgrade: +20% to this part'; T_.up.disabled = S.coins < c || lk; });
-    { const ec = expandCost(), full = S.unlocked.length >= maxCells(), chip = $('expandPrice'); chip.textContent = full ? '+ slot: league limit' : '+ slot ' + ec; chip.classList.toggle('no', full || S.coins < ec); }
+    { const ec = expandCost(), full = S.unlocked.length >= maxCells(), chip = $('expandPrice'); chip.textContent = full ? '+ slot: league limit' : '+ slot ' + ec; chip.classList.toggle('no', full || S.coins < ec); chip.classList.toggle('priced', !full); }
     $('hint').textContent = inspect && S.parts[inspect] && tool !== 'erase' ? TYPES[S.parts[inspect]].name + ': ' + TYPES[S.parts[inspect]].desc + (INFL[S.parts[inspect]] ? '' : ' (no bonus to neighbours)') : tool === 'erase' ? 'Erase mode: tap a part to remove it (base price refunded). Tap Erase again to go back.' : TYPES[tool].name + ': ' + TYPES[tool].desc;
-    $('eraseBtn').classList.toggle('on', tool === 'erase');
     $('tools').style.display = mode === 'build' ? '' : 'none';
     // robot stats
     const cells = playerCells(), parts = compute(cells, S.lv);
@@ -1348,7 +1350,6 @@
   const zoomBy = f => { view.z = clamp(view.z * f, 0.3, 2.4); view.x *= f; view.y *= f; userMoved = true; };
   $('zin').addEventListener('click', () => zoomBy(1.2));
   $('zout').addEventListener('click', () => zoomBy(1 / 1.2));
-  $('eraseBtn').addEventListener('click', () => { tool = tool === 'erase' ? lastTool : 'erase'; refreshUI(); });
   $('center').addEventListener('click', () => { userMoved = false; fitView(); });
     const showSpeed = () => { document.querySelectorAll('#speedSeg button').forEach(b => b.classList.toggle('on', +b.dataset.s === speed)); };
     document.querySelectorAll('#speedSeg button').forEach(b => b.addEventListener('click', () => { speed = +b.dataset.s; showSpeed(); })); showSpeed();
@@ -1395,5 +1396,4 @@
   })();
 </script>
 
-</body>
-</html>
+</body></html>
