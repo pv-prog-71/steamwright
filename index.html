@@ -341,7 +341,7 @@
     mortar: { name: 'Mortar', hp: 12, dmg: 16, per: 4.5, cost: 55, desc: 'Slow lobbed shell: 16 damage to a part and half of it to the parts next to it.' },
     tesla:  { name: 'Tesla', hp: 12, dmg: 4, per: 1.3, cost: 50, desc: 'Fast lightning that ignores decoys: it hits any enemy part with the same chance.' },
     repair: { name: 'Repairer', hp: 10, heal: 2, cost: 45, desc: 'Every second it heals each adjacent part by 2 health.' },
-    wheel:  { name: 'Wheels', hp: 70, cost: 40, desc: 'Every part of the robot dodges 12% of the shots aimed at it, for each wheel (up to 3 wheels).' }
+    wheel:  { name: 'Wheels', hp: 220, cost: 40, desc: 'Every part of the robot dodges 12% of the shots aimed at it, for each wheel (up to 3 wheels).' }
   };
   const BUILDABLE = ['cannon', 'plate', 'spring', 'boiler', 'gear', 'shield', 'repair', 'wheel', 'mortar', 'tesla'];
   const isGun = t => t === 'cannon' || t === 'mortar' || t === 'tesla';
