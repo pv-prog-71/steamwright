@@ -158,7 +158,8 @@
   /* phone in landscape: everything compact so the build area gets the room */
   @media (max-height: 460px) {
     body { padding-block: 3px 4px; gap: 4px; padding-left: max(8px, env(safe-area-inset-left, 0px)); padding-right: max(8px, env(safe-area-inset-right, 0px)); }
-    header { padding: 2px 12px; gap: 2px 14px; --b3: none; --b4: none; }
+    header { padding: 2px 30px; gap: 2px 14px; }
+    header::before { background: var(--b1, var(--rivdot)) 6px 50% / 15px 15px no-repeat, var(--b2, var(--rivdot)) calc(100% - 6px) 50% / 15px 15px no-repeat; }
     header .avatar { width: 28px; height: 28px; }
     h1 { font-size: 16px; } .stat b { font-size: 15px; } .stat span { font-size: 11px; } .ico { width: 18px; height: 18px; }
     #reset { padding: 2px 8px; font-size: 12px; }
