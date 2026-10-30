@@ -546,10 +546,10 @@
     return Object.keys(S.parts).filter(k => ok.has(k)).map(k => { const [x, y] = k.split(',').map(Number); return { x, y, type: S.parts[k] }; });
   }
 
-  function genEnemy(league, seed) {
+  function genEnemy(league, seed, opt) {
     const rng = rngOf(seed * 7919 + league * 104729);
     const allowed = BUILDABLE.filter(t => UNLOCK_LEAGUE[t] <= league && t !== 'wheel');
-    const n = 3 + Math.floor(league * 2.7);
+    const n = (opt && opt.n) || 3 + Math.floor(league * 2.7);
     const cells = [{ x: 0, y: 0, type: 'core' }];
     const used = new Set(['0,0']);
     const frontier = () => {
@@ -576,7 +576,7 @@
     }
     cells.push({ x: 0, y: 1, type: 'wheel' });   // wheels on the bottom row
     { const bottoms = cells.filter(c => c.y === 0 && c.x !== 0 && c.type !== 'core'); for (let i = 0; i < Math.min(bottoms.length, league >= UNLOCK_LEAGUE.wheel ? Math.floor(n / 7) : 0); i++) cells.push({ x: bottoms[i].x, y: 1, type: 'wheel' }); }
-    const l = Math.floor((league - 1) * 0.6);
+    const l = opt && opt.l !== undefined ? opt.l : Math.floor((league - 1) * 0.6);
     const lv = {};
     UPGRADABLE.forEach(t => (lv[t] = l));
     return { cells, lv, name: NAMES[Math.floor(rng() * NAMES.length)] + ' ' + ['I', 'II', 'III', 'IV', 'V'][Math.floor(rng() * 5)] };
@@ -1310,7 +1310,8 @@
   function chassisRect() { const [w, h] = rectSize(); return { x0: -Math.floor((w - 1) / 2), x1: Math.ceil((w - 1) / 2), y0: -Math.floor((h - 1) / 2), y1: Math.ceil((h - 1) / 2) }; }
   const inChassis = (x, y) => { const R = chassisRect(); return x >= R.x0 && x <= R.x1 && y >= R.y0 && y <= R.y1; };
   const maxCells = () => rectSize()[0] * rectSize()[1];
-  const expandCost = () => Math.round(20 * Math.pow(1.3, S.unlocked.length - 9));
+  const slotCount = () => S.unlocked.filter(q => !q.endsWith(',1')).length;
+  const expandCost = () => Math.round(10 * Math.pow(1.2, slotCount() - 1));
   function canExpand(x, y) {
     const u = unlockedSet();
     if (u.has(key(x, y)) || y > 1) return false;
@@ -1345,7 +1346,7 @@
     if (t === 'core') return toast('The core cannot be removed');
     S.coins += TYPES[t].cost; delete S.parts[k]; sfx('erase'); changed();
   }
-  function placeCost(t) { return Math.round(TYPES[t].cost * (1 + 0.3 * (S.lv[t] || 0))); }
+  function placeCost(t) { return Math.round(TYPES[t].cost * (1 + 0.3 * (S.lv[t] || 0)) * (1 + 0.06 * (S.league - 1))); }
   function upgradeCost(t) { return Math.round(40 * Math.pow(1.7, S.lv[t] || 0)); }
 
   // pointer handling
@@ -1439,13 +1440,31 @@
       $('pctBar').style.width = Math.round(chance * 100) + '%';
     }
   }
+  // power of a robot: damage per second x total health (rough, for balancing)
+  function powerOf(cells, lv) { const P = compute(cells, lv); let dps = 0, hp = 0; P.forEach(q => { hp += q.maxhp; if (q.dmg && q.per) dps += q.dmg / q.per; }); return Math.max(0.01, dps) * hp; }
+  let ADAPT = 0.35;   // how much the enemy follows a player who is stronger than the arena expects (0 = never, 1 = always equal)
+  function makeEnemy() {
+    const L = S.league, base = genEnemy(L, S.seed), pc = playerCells();
+    if (!pc.some(c => isGun(c.type))) return base;
+    const pa = powerOf(pc, S.lv), pb = powerOf(base.cells, base.lv);
+    if (pa <= pb * 1.05) return base;
+    const target = pb * Math.pow(pa / pb, ADAPT);
+    let n = 3 + Math.floor(L * 2.7), l = Math.floor((L - 1) * 0.6), best = base;
+    for (let i = 0; i < 70; i++) {
+      if (i % 3 === 2 || n >= 60) l++; else n += 2;
+      best = genEnemy(L, S.seed, { n, l });
+      if (powerOf(best.cells, best.lv) >= target) break;
+    }
+    return best;
+  }
   function recompute() {
-    enemy = enemy || genEnemy(S.league, S.seed);
+    enemy = enemy || makeEnemy();
     const cells = playerCells();
     chance = cells.some(c => isGun(c.type)) ? winChance(cells, S.lv, enemy.cells, enemy.lv, 120) : 0;
   }
-  function changed() { if (!userMoved) fitView(); recompute(); refreshUI(); save(); }
-  function newEnemy() { S.seed++; enemy = genEnemy(S.league, S.seed); recompute(); refreshUI(); }
+  let SIM = false;
+  function changed() { if (SIM) return; if (!userMoved) fitView(); recompute(); refreshUI(); save(); }
+  function newEnemy() { S.seed++; enemy = makeEnemy(); recompute(); refreshUI(); }
 
   // ------------------------------------------------------------ battle view
   let speed = 4, autoWait = 0, resultShown = false;
@@ -1461,13 +1480,17 @@
     $('hint').style.display = 'none';
     refreshUI();
   }
-  function finishBattle() {
-    const win = battle.res.winner === 0, L = S.league;
-    const reward = win ? 20 + 8 * L : 6 + 2 * L;
-    sfx(win ? 'win' : 'lose'); setTimeout(() => sfx('coin'), 650);
+  function applyResult(win, ch) {   // coins, streak and arena progress after a fight (also used by the balance simulator)
+    const L = S.league, k = win && ch !== undefined ? Math.max(0.7, Math.min(1.3, 1.3 - 0.6 * ch)) : 1, reward = Math.round(win ? (20 + 8 * L) * k : 6 + 2 * L);   // easy wins pay less
     S.coins += reward; S.fights++;
     let extra = '';
     if (win) { S.streak++; if (S.streak >= needWins(L)) { S.streak = 0; S.league++; extra = ' Arena ' + S.league + ' reached!'; const nu = BUILDABLE.filter(t => UNLOCK_LEAGUE[t] === S.league).map(t => TYPES[t].name); if (nu.length) { extra += ' New part: ' + nu.join(', ') + '.'; pendingUnlock = BUILDABLE.filter(t => UNLOCK_LEAGUE[t] === S.league); S.newParts = (S.newParts || []).concat(pendingUnlock); } } }
+    return { reward, extra };
+  }
+  function finishBattle() {
+    const win = battle.res.winner === 0;
+    sfx(win ? 'win' : 'lose'); setTimeout(() => sfx('coin'), 650);
+    const { reward, extra } = applyResult(win, chance);
     $('bannerTitle').textContent = win ? 'Victory!' : 'Defeat';
     $('bannerText').textContent = '+' + reward + ' coins.' + extra;
     $('banner').classList.add('on', win ? 'win' : 'lose'); $('banner').classList.remove(win ? 'lose' : 'win');
@@ -1822,7 +1845,7 @@
   offline();
   refreshUI();
   save();
-  window.__automa = { mus: () => ({ bars: MUS.bar, mood: MUS.mood }), sfx, audio: () => ({ state: AC && AC.state, muted: MUTED }), unlockDemo: t => { pendingUnlock = [t]; showUnlock(); }, S: () => S, compute, simulate, genEnemy, winChance, playerCells, startBattle, view, state: () => ({ mode, tool, chance }), setTool: t => { tool = t; }, clickCell };
+  window.__automa = { mus: () => ({ bars: MUS.bar, mood: MUS.mood }), sfx, audio: () => ({ state: AC && AC.state, muted: MUTED }), unlockDemo: t => { pendingUnlock = [t]; showUnlock(); }, S: () => S, compute, simulate, genEnemy, winChance, playerCells, startBattle, view, state: () => ({ mode, tool, chance }), setTool: t => { tool = t; }, clickCell, applyResult, upgradeCost, placeCost, expandCost, needWins, canExpand, isLocked, setSim: v => { SIM = v; }, setAdapt: v => { ADAPT = v; }, nextEnemy: () => { S.seed++; enemy = makeEnemy(); return enemy; }, TYPES: () => TYPES, BUILDABLE: () => BUILDABLE, UNLOCK_LEAGUE: () => UNLOCK_LEAGUE, rngOf };
   requestAnimationFrame(frame);
 })();
 
