@@ -92,6 +92,8 @@
       var(--b1, var(--rivdot)) 3px 3px / 15px 15px no-repeat, var(--b2, var(--rivdot)) calc(100% - 3px) 3px / 15px 15px no-repeat,
       var(--b3, var(--rivdot)) 3px calc(100% - 3px) / 15px 15px no-repeat, var(--b4, var(--rivdot)) calc(100% - 3px) calc(100% - 3px) / 15px 15px no-repeat;
   }
+  header, .card { isolation: isolate; }
+  header::before, .card::before { z-index: -1; }
   .card { border: 2px solid #5b4330; border-radius: 6px; padding: 14px 18px;
     box-shadow: inset 0 1px 0 rgba(255,225,170,.14), inset 0 -3px 8px rgba(0,0,0,.5), 0 2px 8px #000a; }
   header { border: 2px solid #5b4330; border-radius: 6px; padding: 8px 20px;
@@ -156,7 +158,7 @@
   /* phone in landscape: everything compact so the build area gets the room */
   @media (max-height: 460px) {
     body { padding-block: 3px 4px; gap: 4px; padding-left: max(8px, env(safe-area-inset-left, 0px)); padding-right: max(8px, env(safe-area-inset-right, 0px)); }
-    header { padding: 2px 12px; gap: 2px 14px; }
+    header { padding: 2px 12px; gap: 2px 14px; --b3: none; --b4: none; }
     header .avatar { width: 28px; height: 28px; }
     h1 { font-size: 16px; } .stat b { font-size: 15px; } .stat span { font-size: 11px; } .ico { width: 18px; height: 18px; }
     #reset { padding: 2px 8px; font-size: 12px; }
@@ -982,7 +984,7 @@
     const ring = S.unlocked.length < maxCells() ? 1 : 0;
     S.unlocked.forEach(k => { const [x, y] = k.split(',').map(Number); x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); });
     x0 -= ring; x1 += ring; y0 -= ring; y1 += ring;
-    const z = clamp(Math.min((w - 40) / ((x1 - x0 + 1) * CELL), (h - 70) / ((y1 - y0 + 1) * CELL)), 0.3, 1.5);
+    const z = clamp(Math.min((w - 40) / ((x1 - x0 + 1) * CELL), (h - (h < 330 ? 24 : 70)) / ((y1 - y0 + 1) * CELL)), 0.3, 1.5);
     view.z = z; view.x = -((x0 + x1) / 2) * CELL * z; view.y = -((y0 + y1) / 2) * CELL * z;
   }
   const W = () => board.getBoundingClientRect().width, H = () => board.getBoundingClientRect().height;
