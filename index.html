@@ -159,20 +159,21 @@
   @media (max-height: 460px) {
     body { padding-block: 3px 4px; gap: 4px; padding-left: max(8px, env(safe-area-inset-left, 0px)); padding-right: max(8px, env(safe-area-inset-right, 0px)); }
     header { padding: 2px 30px; gap: 2px 14px; }
-    header::before { background: var(--b1, var(--rivdot)) 6px 50% / 15px 15px no-repeat, var(--b2, var(--rivdot)) calc(100% - 6px) 50% / 15px 15px no-repeat; }
+    header::before { background: var(--b1, var(--rivdot)) 4px 3px / 11px 11px no-repeat, var(--b2, var(--rivdot)) calc(100% - 4px) 3px / 11px 11px no-repeat, var(--b3, var(--rivdot)) 4px calc(100% - 3px) / 11px 11px no-repeat, var(--b4, var(--rivdot)) calc(100% - 4px) calc(100% - 3px) / 11px 11px no-repeat; }
+    .partsbox { padding-left: 26px; padding-right: 26px; }
     header .avatar { width: 28px; height: 28px; }
     h1 { font-size: 16px; } .stat b { font-size: 15px; } .stat span { font-size: 11px; } .ico { width: 18px; height: 18px; }
     #reset { padding: 2px 8px; font-size: 12px; }
     main { gap: 4px; grid-template-columns: minmax(0, 1fr) clamp(150px, 24vw, 210px); }
-    .hint { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; left: 10px; bottom: 8px; right: 270px; font-size: 11px; line-height: 1.25; color: #d9c9a8; background: rgba(0,0,0,.6); border-radius: 5px; padding: 2px 6px; width: fit-content; max-width: calc(100% - 290px); }
-    .statbox { left: 10px; top: 10px; font-size: 11px; line-height: 1.25; padding: 2px 7px; }
-    .tools { right: 10px; bottom: 10px; } .tools button { padding: 1px 7px; font-size: 12px; } .chip { font-size: 12px; padding: 1px 7px; }
+    .hint { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; left: 26px; bottom: 24px; right: 270px; font-size: 11px; line-height: 1.25; color: #d9c9a8; background: rgba(0,0,0,.6); border-radius: 5px; padding: 2px 6px; width: fit-content; max-width: calc(100% - 310px); }
+    .statbox { left: 26px; top: 24px; font-size: 11px; line-height: 1.25; padding: 2px 7px; }
+    .tools { right: 26px; bottom: 24px; } .tools button { padding: 1px 7px; font-size: 12px; } .chip { font-size: 12px; padding: 1px 7px; }
     .parts { gap: 4px; }
     .tile .pick { display: grid; grid-template-columns: auto 1fr; grid-template-areas: "cv nm" "cv co"; column-gap: 6px; align-items: center; text-align: left; padding: 3px 5px 2px; font-size: 11px; }
     .tile .pick canvas { grid-area: cv; width: 32px; height: 32px; } .tile .pick b { grid-area: nm; font-size: 11px; } .tile .pick .cost { grid-area: co; font-size: 11px; }
     .tile .uprow { padding: 1px 4px 2px; font-size: 10px; } .tile .up { padding: 1px 5px; font-size: 11px; } .tile.more b { font-size: 22px; } .tile.more span { font-size: 10px; }
     .tile.fresh .pick b::after { content: '★'; padding: 0 3px; margin-left: 3px; }
-    aside .card { padding: 4px 6px; --b3: none; --b4: none; } aside h2 { display: none; } .bigpct { font-size: 20px; } button.primary { font-size: 14px; padding: 4px 8px; }
+    aside .card { padding: 20px 10px; } aside h2 { display: none; } .bigpct { font-size: 20px; } button.primary { font-size: 14px; padding: 4px 8px; }
   }
   #rotate { display: none; position: fixed; inset: 0; z-index: 90; background: #0d0907; color: #e6d6b8; align-items: center; justify-content: center; text-align: center; flex-direction: column; gap: 14px; padding: 24px; font-size: 18px; }
   #rotate svg { width: 84px; height: 84px; animation: rot 2.4s ease-in-out infinite; }
