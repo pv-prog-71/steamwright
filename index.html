@@ -417,7 +417,8 @@
       const raw = localStorage.getItem(SAVE_KEY);
       if (raw) { const o = JSON.parse(raw); if (o && o.parts && o.unlocked) { S = Object.assign(freshState(), o); delete S.plates;
         if (!S.wrow) { S.wrow = 1; Object.keys(S.parts).forEach(k => { const y = +k.split(',')[1]; if (S.parts[k] !== 'core' && (y >= 1 || S.parts[k] === 'wheel')) { S.coins += 15; delete S.parts[k]; } });
-          S.unlocked = S.unlocked.filter(k => +k.split(',')[1] <= 0); if (S.unlocked.indexOf('0,1') < 0) S.unlocked.push('0,1'); S.parts['0,1'] = 'wheel'; } } }
+          S.unlocked = S.unlocked.filter(k => +k.split(',')[1] <= 0); if (S.unlocked.indexOf('0,1') < 0) S.unlocked.push('0,1'); S.parts['0,1'] = 'wheel'; }
+        if (!Object.values(S.parts).includes('wheel') && S.parts['0,0'] === 'core') { if (S.unlocked.indexOf('0,1') < 0) S.unlocked.push('0,1'); S.parts['0,1'] = 'wheel'; } } }
     } catch (e) {}
   }
   function save() {
@@ -1344,6 +1345,12 @@
     const t = S.parts[k];
     if (!t) return;
     if (t === 'core') return toast('The core cannot be removed');
+    if (t === 'wheel' && Object.values(S.parts).filter(q => q === 'wheel').length <= 1) return sfx('deny'), toast('The robot needs at least one wheel');
+    const [ex, ey] = k.split(',').map(Number), wk = key(ex, ey + 1);
+    if (ey === 0 && S.parts[wk] === 'wheel') {   // a wheel hangs under the part above it: it cannot stay alone
+      if (Object.values(S.parts).filter(q => q === 'wheel').length <= 1) return sfx('deny'), toast('This part holds your last wheel');
+      S.coins += TYPES.wheel.cost; delete S.parts[wk]; toast('The wheel under it was removed too');
+    }
     S.coins += TYPES[t].cost; delete S.parts[k]; sfx('erase'); changed();
   }
   function placeCost(t) { return Math.round(TYPES[t].cost * (1 + 0.3 * (S.lv[t] || 0)) * (1 + 0.06 * (S.league - 1))); }
@@ -1471,7 +1478,7 @@
   function startBattle() {
     if (mode !== 'build') return;
     const cells = playerCells();
-    if (!cells.some(c => isGun(c.type))) return;
+    if (!cells.some(c => isGun(c.type)) || !cells.some(c => c.type === 'wheel')) return;
     const A = compute(cells, S.lv), B = compute(enemy.cells, enemy.lv);
     const res = simulate(A, B, rngOf((Math.random() * 1e9) | 0), true);
     battle = { A, B, lvB: enemy.lv, res, tp: -1.8, hpA: A.map(p => p.maxhp), hpB: B.map(p => p.maxhp), flashA: A.map(() => 0), flashB: B.map(() => 0), deadA: A.map(() => 0), deadB: B.map(() => 0), idx: 0, nums: [] };
