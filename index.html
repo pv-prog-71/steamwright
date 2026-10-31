@@ -645,7 +645,7 @@
   function genEnemy(league, seed, opt) {
     const rng = rngOf(seed * 7919 + league * 104729);
     const allowed = BUILDABLE.filter(t => UNLOCK_LEAGUE[t] <= league && t !== 'wheel');
-    const n = (opt && opt.n) || (league === 1 ? 3 : 2 + Math.floor(league * 2.3));
+    const n = (opt && opt.n) || (league === 1 ? 3 : 2 + Math.floor(league * 2.9));
     const cells = [{ x: 0, y: 0, type: 'core' }];
     const used = new Set(['0,0']);
     const frontier = () => {
@@ -1671,18 +1671,20 @@
   }
   // power of a robot: damage per second x total health (rough, for balancing)
   function powerOf(cells, lv) { const P = compute(cells, lv); let dps = 0, hp = 0; P.forEach(q => { hp += q.maxhp; if (q.dmg && q.per) dps += q.dmg / q.per; }); return Math.max(0.01, dps) * hp; }
-  let ADAPT = 0.35;   // how much the enemy follows a player who is stronger than the arena expects (0 = never, 1 = always equal)
+  let ADAPT = 0.5;   // how much the enemy follows a player who is stronger than the arena expects (0 = never, 1 = always equal)
   let rivalCache = null;
   const rivalOrder = () => rivalCache || (rivalCache = Array.from({ length: LB_NAMES.length }, (_, i) => i).sort((a, b) => hs(a, 77) - hs(b, 77)));
   function makeEnemy() {
     const L = S.league, order = rivalOrder(), ridx = order[S.seed % order.length], gs = ridx * 131 + L + 1;   // each rival always brings the same robot in a given arena, and none repeats before the whole list has been met
     const named = e => { e.name = LB_NAMES[ridx]; return e; };
+    const early = L === 1 && S.fights < 4;   // the very first fights are gentle: two weapons are enough to win
+    if (early) return named(genEnemy(L, gs, { n: 2 }));
     const base = named(genEnemy(L, gs)), pc = playerCells();
     if (!pc.some(c => isGun(c.type))) return base;
     const pa = powerOf(pc, S.lv), pb = powerOf(base.cells, base.lv);
     if (pa <= pb * 1.05) return base;
     const target = pb * Math.pow(pa / pb, ADAPT);
-    let n = 2 + Math.floor(L * 2.3), l = Math.floor((L - 1) * 0.6), best = base;
+    let n = 2 + Math.floor(L * 2.9), l = Math.floor((L - 1) * 0.6), best = base;
     for (let i = 0; i < 70; i++) {
       if (i % 3 === 2 || n >= 60) l++; else n += 2;
       best = named(genEnemy(L, gs, { n, l }));
