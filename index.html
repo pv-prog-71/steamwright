@@ -103,7 +103,7 @@
   button.primary { background: linear-gradient(#e0ad52, #b87a28); color: #20150a; font-weight: 700; border-color: #f0c577; font-size: 18px; padding: 10px 14px; width: 100%; letter-spacing: .04em; }
   button.primary:disabled { filter: grayscale(.6); }
   .parts { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(64px, 1fr); gap: 6px; overflow-x: auto; scrollbar-width: thin; padding-bottom: 2px; }
-  .statbox { position: absolute; left: 24px; top: 24px; height: 44px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; z-index: 4; font-size: 13px; line-height: 1.45; color: var(--ink-dim); background: #0009; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; pointer-events: none; }
+  .statbox { position: absolute; left: 24px; top: 24px; min-height: 44px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; z-index: 4; font-size: 13px; line-height: 1.45; color: var(--ink-dim); background: #0009; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; pointer-events: none; }
   .statbox b { color: var(--steam); }
   .tile { display: flex; flex-direction: column; background: linear-gradient(rgba(30,22,16,.35), rgba(18,12,8,.55)), var(--plate) 40px 70px / 256px 256px, #261c15; border: 1px solid #6a4f36; border-radius: 5px; overflow: hidden; box-shadow: inset 0 1px 0 rgba(255,225,170,.12), 0 1px 3px #000a; }
   .tile .cost, .tile .up, .chip, .stat b, .tile .uprow { font-variant-numeric: lining-nums tabular-nums; font-feature-settings: 'lnum' 1; }
@@ -197,7 +197,7 @@
   .tile.rare { border-color: #b57cf0; box-shadow: 0 0 10px rgba(190,110,255,.45); }
   .tile.rare .pick b { color: #e2c4ff; }
   .tile.rare .cost { color: #d8b0ff; }
-  @media (max-height: 460px) { .crates { gap: 4px; } .crate { width: 44px; height: 42px; font-size: 10px; } .statbox { height: 42px; } .crate svg { width: 26px; height: 22px; } .crate.new::after, .crate.ready::after { width: 14px; height: 14px; font-size: 10px; line-height: 14px; } }
+  @media (max-height: 460px) { .crates { gap: 4px; } .crate { width: 44px; height: 42px; font-size: 10px; } .statbox { min-height: 42px; } .crate svg { width: 26px; height: 22px; } .crate.new::after, .crate.ready::after { width: 14px; height: 14px; font-size: 10px; line-height: 14px; } }
   .lbb { cursor: pointer; background: none; border: 0; color: inherit; font: inherit; padding: 0 4px; }
   .lbb b { color: #f0cd7a; }
   .confetti { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
@@ -820,6 +820,12 @@
   function drawPart(g, type, cx, cy, u, t, dir, hpRatio) {
     drawPart0(g, type, cx, cy, u, t, dir, hpRatio);
     if (!RARE_NOW || type === 'core') return;
+    if (RARE_Q) { RARE_Q.push([cx, cy, u]); return; }   // on the robot the frame is drawn last, so the rack never covers it
+    rareFrame(g, cx, cy, u);
+  }
+  let RARE_Q = null;
+  function flushRare(g) { const q = RARE_Q || []; RARE_Q = null; q.forEach(a => rareFrame(g, a[0], a[1], a[2])); }
+  function rareFrame(g, cx, cy, u) {
     const h = u * 0.5, pl = 0.55 + 0.45 * Math.sin(performance.now() / 380);   // rare parts glow with a violet frame and a star
     g.save(); g.translate(cx, cy);
     g.fillStyle = 'rgba(190,110,255,' + (0.06 + 0.07 * pl) + ')'; rr(g, -h, -h, 2 * h, 2 * h, u * 0.1); g.fill();
@@ -1650,7 +1656,7 @@
     const cells = playerCells(), parts = compute(cells, S.lv);
     const hp = parts.reduce((a, p) => a + p.maxhp, 0), cn = parts.filter(p => isGun(p.type));
     const dps = cn.reduce((a, p) => a + p.dmg / p.per, 0);
-    $('botStats').innerHTML = '<div>Parts <b>' + (parts.length - 1) + '</b> · Health <b>' + Math.round(hp) + '</b> · Weapons <b>' + cn.length + '</b> · Damage/s <b>' + dps.toFixed(1) + '</b>' + (cn.length ? '' : '<br><span style="color:var(--bad)">You need at least one weapon to win.</span>') + (Object.keys(S.parts).length > parts.length ? '<br><span style="color:var(--bad)">' + (Object.keys(S.parts).length - parts.length) + ' part(s) not connected to the core</span>' : '') + '</div>';
+    $('botStats').innerHTML = '<div>Parts <b>' + (parts.length - 1) + '</b> · Health <b>' + Math.round(hp) + '</b><br>Weapons <b>' + cn.length + '</b> · Damage/s <b>' + dps.toFixed(1) + '</b>' + (cn.length ? '' : '<br><span style="color:var(--bad)">You need at least one weapon to win.</span>') + (Object.keys(S.parts).length > parts.length ? '<br><span style="color:var(--bad)">' + (Object.keys(S.parts).length - parts.length) + ' part(s) not connected to the core</span>' : '') + '</div>';
     $('botStats').style.display = mode === 'build' ? '' : 'none';
     $('fight').disabled = mode !== 'build' || !cn.length;
     // enemy
@@ -1884,6 +1890,7 @@
       const parts = side === 0 ? b.A : b.B, dd = side === 0 ? b.deadA : b.deadB;
       { const bp = parts.filter(p => !dd[p.i]).map(p => { const q = pos(side, p); return { x: q[0], y: q[1], cx: p.x * (side === 0 ? 1 : -1), cy: p.y, type: p.type }; }); drawRack(g, bp.concat(gapCells(parts, dd, side)), u, 0); }
     });
+    RARE_Q = [];
     [0, 1].forEach(side => {
       const parts = side === 0 ? b.A : b.B, hp = side === 0 ? b.hpA : b.hpB, fl = side === 0 ? b.flashA : b.flashB, dd = side === 0 ? b.deadA : b.deadB;
       curLvl = side === 0 ? S.lv : b.lvB;
@@ -1901,6 +1908,7 @@
       const parts = side === 0 ? b.A : b.B, dd = side === 0 ? b.deadA : b.deadB;
       { const lp = parts.filter(p => !dd[p.i]).map(p => { const q = pos(side, p); return { x: q[0], y: q[1], cx: p.x * (side === 0 ? 1 : -1), cy: p.y, type: p.type, pl: p.type === 'wheel' }; }); drawRack(g, lp.concat(gapCells(parts, dd, side)), u, 1); drawLinks(g, lp, u); }
     });
+    flushRare(g);
     // projectiles
     b.res.events.forEach(e => {
       if (e.kind === 'zap') {
@@ -1965,7 +1973,7 @@
       const pr = 7 * z; g.save(); g.lineCap = 'round'; g.strokeStyle = 'rgba(232,194,120,' + (0.85 * a1) + ')'; g.lineWidth = 3 * z; g.beginPath(); g.moveTo(sx - pr, sy); g.lineTo(sx + pr, sy); g.moveTo(sx, sy - pr); g.lineTo(sx, sy + pr); g.stroke(); g.restore();
     });
     // parts
-    curLvl = S.lv;
+    curLvl = S.lv; RARE_Q = [];
     Object.keys(S.parts).forEach(k => {
       const [x, y] = k.split(',').map(Number), [sx, sy] = toScreen(x, y), on = conn.has(k);
       if (!on) g.globalAlpha = 0.55;
@@ -1980,6 +1988,7 @@
     });
     drawRack(g, rackPts, u, 1);
     drawLinks(g, Object.keys(S.parts).map(k => { const [x, y] = k.split(',').map(Number), q = toScreen(x, y); return { x: q[0], y: q[1], cx: x, cy: y, pl: S.parts[k] === 'wheel' }; }), u);
+    flushRare(g);
     if (inspect && S.parts[inspect] && mode === 'build') {
       const it = S.parts[inspect], [ix, iy] = inspect.split(',').map(Number), [isx, isy] = toScreen(ix, iy), col = INFL_COL[it];
       g.save(); g.strokeStyle = '#f0c577'; g.lineWidth = 2.5; g.beginPath(); g.arc(isx, isy, u * 0.46, 0, 7); g.stroke(); g.restore();
