@@ -273,7 +273,7 @@
 <div id="rotate"><svg viewBox="0 0 48 48" fill="none" stroke="#e2b564" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="14" y="5" width="20" height="38" rx="4"/><path d="M22 38h4"/></svg><div>Rotate your phone<br><span style="color:#9a8a70;font-size:14px">Steamwright is played in landscape</span></div></div>
 <div id="unlock" class="gone" role="dialog" aria-label="New part unlocked"><div class="ubox"><div class="ukick">New part unlocked!</div><canvas id="ucv" width="300" height="300"></canvas><h2 id="uname"></h2><p id="udesc"></p><button class="primary" id="uok" style="width:auto">Great!</button></div></div>
 <div id="lb" class="gone" role="dialog" aria-label="Leaderboard"><div class="lbox"><h2>Leaderboard</h2><div class="lsub" id="lsub"></div><div class="llist" id="llist"></div><button class="primary" id="lbok" style="width:auto">Close</button></div></div>
-<div id="inv" class="gone" role="dialog" aria-label="Inventory"><div class="lbox"><h2>Inventory</h2><div class="lsub">Parts you own. Hold a part on the machine to take it off: it waits here and you can place it again for free, anywhere you like.</div><div class="ilist" id="ilist"></div><div class="ibtns"><button id="invClear" style="width:auto">Take all parts off</button><button class="primary" id="invok" style="width:auto">Close</button></div></div></div>
+<div id="inv" class="gone" role="dialog" aria-label="Parts box"><div class="lbox"><h2>Parts box</h2><div class="lsub">Parts you own. Hold a part on the machine to take it off: it waits here and you can place it again for free, anywhere you like.</div><div class="ilist" id="ilist"></div><div class="ibtns"><button id="invClear" style="width:auto">Take all parts off</button><button class="primary" id="invok" style="width:auto">Close</button></div></div></div>
 <div id="cm" class="gone" role="dialog" aria-label="Crate"><div class="lbox"><div id="cmimg"></div><h2 id="cmt">Crate</h2><div class="lsub" id="cms"></div><div class="ibtns"><button class="primary" id="cmgo" style="width:auto">Start timer</button><button id="cmad" style="width:auto">Watch an ad: open now</button><button id="cmx" style="width:auto">Close</button></div></div></div>
 <div id="splash" class="gone" role="dialog" aria-label="Welcome">
   <div class="box"><h2>Steamwright</h2><p>The old inventor builds machines in his cluttered workshop. Build yours, win battles, conquer the arenas.</p><button id="enter">Enter the workshop</button></div>
@@ -1678,7 +1678,7 @@
     Object.keys(tiles).forEach(t => { const T_ = tiles[t], c = upgradeCost(t); T_.el.style.display = isLocked(t) && UNLOCK_LEAGUE[t] > nextL ? 'none' : '';
       { const L_ = S.lv[t] || 0; if (T_.tier !== L_) { T_.tier = L_; const g2 = T_.cv.getContext('2d'); g2.clearRect(0, 0, 88, 88); curLvl = S.lv; drawPart(g2, t, 44, 44, 76, 0.5, 1); curLvl = null; } } T_.el.classList.toggle('sel', t === tool); T_.lv.textContent = 'Lv ' + (S.lv[t] || 0); T_.lv.classList.toggle('on', (S.lv[t] || 0) > 0); const lk = isLocked(t); T_.el.classList.toggle('locked', lk); T_.el.classList.toggle('fresh', !lk && (S.newParts || []).includes(t)); T_.pickBtn.disabled = t === 'core' || lk; if (t !== 'core') T_.c.textContent = lk ? 'Arena ' + UNLOCK_LEAGUE[t] : (S.inv[t] || 0) > 0 ? 'Free \u00d7' + S.inv[t] : placeCost(t); T_.c.style.color = (S.inv[t] || 0) > 0 && !lk ? '#8fe08f' : ''; T_.up.classList.toggle('can', S.coins >= c); T_.up.textContent = '▲ ' + c; T_.up.title = 'Upgrade: +20% to this part'; T_.up.disabled = S.coins < c || lk; });
     { const ec = expandCost(), full = S.unlocked.length >= maxCells(), chip = $('expandPrice'); chip.textContent = full ? '+ slot: arena limit' : '+ slot ' + ec; chip.classList.toggle('no', full || S.coins < ec); chip.classList.toggle('priced', !full); }
-    $('hint').textContent = inspect && S.parts[inspect] && tool !== 'erase' ? TYPES[S.parts[inspect]].name + ': ' + TYPES[S.parts[inspect]].desc + (INFL[S.parts[inspect]] ? '' : ' (no bonus to neighbours)') : tool === 'erase' ? 'Erase mode: tap a part to take it off; it goes to your Inventory and you can place it again for free. Tap Erase again to go back.' : (toolRare ? '\u2605 Rare ' : '') + TYPES[tool].name + ': ' + TYPES[tool].desc + (toolRare ? ' Rare: everything it does is 40% stronger.' : '');
+    $('hint').textContent = inspect && S.parts[inspect] && tool !== 'erase' ? TYPES[S.parts[inspect]].name + ': ' + TYPES[S.parts[inspect]].desc + (INFL[S.parts[inspect]] ? '' : ' (no bonus to neighbours)') : tool === 'erase' ? 'Erase mode: tap a part to take it off; it goes to your Parts box and you can place it again for free. Tap Erase again to go back.' : (toolRare ? '\u2605 Rare ' : '') + TYPES[tool].name + ': ' + TYPES[tool].desc + (toolRare ? ' Rare: everything it does is 40% stronger.' : '');
     $('tools').style.display = mode === 'build' ? '' : 'none';
     // robot stats
     const cells = playerCells(), parts = compute(cells, S.lv);
@@ -2224,14 +2224,14 @@
       S.inv[t] = (S.inv[t] || 0) + 1; save(); refreshUI();
       const cv = $('ucv'), g2 = cv.getContext('2d'); g2.clearRect(0, 0, 300, 300); curLvl = S.lv; drawPart(g2, t, 150, 150, 220, 0.5, 1); curLvl = null;
       document.querySelector('#unlock .ukick').textContent = 'A free part was in the crate!';
-      $('uname').textContent = TYPES[t].name; $('udesc').textContent = 'It is in your Inventory: open it and tap Place, or just pick it on the shelf. Placing it costs nothing.';
+      $('uname').textContent = TYPES[t].name; $('udesc').textContent = 'It is in your Parts box: open it and tap Place, or just pick it on the shelf. Placing it costs nothing.';
       $('unlock').classList.remove('gone'); sfx('unlock'); confetti();
     } else if (pool.length && isRare) {
       const t = pool[Math.floor(Math.random() * pool.length)];
       S.rareInv[t] = (S.rareInv[t] || 0) + 1; save(); refreshUI();
       const cv = $('ucv'), g2 = cv.getContext('2d'); g2.clearRect(0, 0, 300, 300); curLvl = S.lv; RARE_NOW = true; drawPart(g2, t, 150, 150, 220, 0.5, 1); RARE_NOW = false; curLvl = null;
       document.querySelector('#unlock .ukick').textContent = 'A rare part was in the crate!';
-      $('uname').textContent = '★ Rare ' + TYPES[t].name; $('udesc').textContent = 'Everything it does is 40% stronger. It is now in your Inventory: open it and tap Place.';
+      $('uname').textContent = '★ Rare ' + TYPES[t].name; $('udesc').textContent = 'Everything it does is 40% stronger. It is now in your Parts box: open it and tap Place.';
       $('unlock').classList.remove('gone'); sfx('unlock'); confetti();
     } else {
       const n = Math.round((40 + 16 * L) * (0.8 + Math.random() * 0.6)); S.coins += n; save(); refreshUI();
