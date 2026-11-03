@@ -1995,7 +1995,7 @@
     if (tutGuns() >= 1) return S.fights === 0 ? 'fight' : null;
     return !tutHasSlot() ? 'slot' : !tutPicked ? 'pick' : 'place';
   }
-  const TUT_TEXT = { slot: 'Step 1: tap the glowing + to add a slot.', pick: 'Step 2: choose the Cannon on the shelf below.', place: 'Step 3: tap the new empty slot to place your Cannon.', fight: 'Step 4: your machine is ready. Press Fight!' };
+  const TUT_TEXT = { slot: 'Step 1: tap the glowing + to add a slot.', pick: 'Step 2: choose the Cannon on the shelf below.', place: 'Step 3: tap the new empty slot to place your Cannon.', fight: 'Step 4: add another Cannon for a better chance, then press Fight! when you are ready.' };
   function tutUI() {
     const st = tutStep(), tb = $('tutb'); if (!tb) return;
     tb.style.display = st ? '' : 'none'; $('fight').classList.toggle('tutpulse', st === 'fight');
